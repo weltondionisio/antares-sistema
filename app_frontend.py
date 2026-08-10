@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
+import plotly.graph_objects as go
 
 st.set_page_config(page_title="Sistema Antares", layout="wide")
 
@@ -76,7 +77,7 @@ else:
 municipio_selec = st.sidebar.selectbox("Município:", opcoes_mun)
 mes_selec = st.sidebar.selectbox("Mês:", ["Ano"] + df_base['mes'].cat.categories.tolist())
 
-# Aplicar filtros
+# Aplicar filtros base
 df = df_base.copy()
 if estado_selec != "Todos": 
     df = df[df['estado'] == estado_selec]
@@ -84,6 +85,22 @@ if municipio_selec != "Todos":
     df = df[df['municipio'] == municipio_selec]
 if mes_selec != "Ano": 
     df = df[df['mes'] == mes_selec]
+
+# ==========================================
+# GARANTIA DA MEDIANA MÍNIMA (Evita valores 0)
+# ==========================================
+# Calcula a mediana global do recorte atual (ou do Brasil se "Todos")
+mediana_referencia = df_base['acidentes_previstos'].median()
+if municipio_selec != "Todos":
+    mediana_referencia = df_base[df_base['municipio'] == municipio_selec]['acidentes_previstos'].median()
+elif estado_selec != "Todos":
+    mediana_referencia = df_base[df_base['estado'] == estado_selec]['acidentes_previstos'].median()
+
+if pd.isna(mediana_referencia) or mediana_referencia <= 0:
+    mediana_referencia = df_base['acidentes_previstos'].median()
+
+# Substitui valores zero ou nulos pela mediana de referência para garantir que não haja zeros
+df['acidentes_previstos'] = df['acidentes_previstos'].apply(lambda x: mediana_referencia if pd.isna(x) or x <= 0 else x)
 
 if mes_selec == "Ano":
     df_mapa = df.groupby(['estado', 'municipio', 'latitude', 'longitude'], observed=False)['acidentes_previstos'].sum().reset_index()
@@ -95,7 +112,7 @@ df_mapa['intensidade_heatmap'] = np.log1p(df_mapa['acidentes_previstos'])
 col1, col2 = st.columns([1.5, 1])
 
 with col1:
-    st.subheader(f"🗺️ Mapa de Calor Contínuo (Risco de Acidentes)")
+    st.subheader(f"🗺️ Mapa de Calor Contínuo (Risco Ajustado)")
     
     if estado_selec == "Todos":
         zoom = 3.0
@@ -136,13 +153,20 @@ with col2:
         df_bar = df.groupby('mes', observed=False)['acidentes_previstos'].sum().reindex(ordem_meses).reset_index()
         y_label = 'Total Esperado de Acidentes'
     else:
-        st.subheader(f"📊 Previsão Sazonal (Mediana - {mes_selec})")
+        st.subheader(f"📊 Previsão Sazonal (Mês: {mes_selec})")
         mediana_mes = df['acidentes_previstos'].median()
-        st.metric(f"Mediana de Acidentes ({mes_selec})", formatar_br(mediana_mes))
+        st.metric(f"Valor Mínimo Recomendado ({mes_selec})", formatar_br(mediana_mes))
         
-        df_bar = df.groupby('mes', observed=False)['acidentes_previstos'].median().reindex(ordem_meses).reset_index()
-        y_label = 'Mediana Esperada de Acidentes'
+        # Se um único mês estiver selecionado, geramos a base para os 12 meses preenchendo com a mediana de referência
+        df_bar = df_base.copy()
+        if estado_selec != "Todos": df_bar = df_bar[df_bar['estado'] == estado_selec]
+        if municipio_selec != "Todos": df_bar = df_bar[df_bar['municipio'] == municipio_selec]
+        
+        df_bar['acidentes_previstos'] = df_bar['acidentes_previstos'].apply(lambda x: mediana_referencia if pd.isna(x) or x <= 0 else x)
+        df_bar = df_bar.groupby('mes', observed=False)['acidentes_previstos'].median().reindex(ordem_meses).reset_index()
+        y_label = 'Previsão de Acidentes'
 
+    # Criação do gráfico de barras com a linha de referência mediana
     fig_bar = px.bar(
         df_bar, 
         x='mes', 
@@ -150,12 +174,22 @@ with col2:
         category_orders={'mes': ordem_meses},
         labels={'mes': 'Mês do Ano', 'acidentes_previstos': y_label}
     )
+    
+    # Adiciona a linha horizontal indicando a mediana de referência
+    fig_bar.add_hline(
+        y=mediana_referencia, 
+        line_dash="dash", 
+        line_color="yellow",
+        annotation_text=f"Mediana de Referência: {formatar_br(mediana_referencia)}",
+        annotation_position="top right"
+    )
+
     fig_bar.update_layout(height=450, margin=dict(l=10, r=10, t=20, b=10))
     st.plotly_chart(fig_bar, use_container_width=True)
 
 st.markdown("---")
 st.markdown(
-    "🛠️ **Sistema ANTARES** — Inteligência Preditiva aplicada à Saúde Pública.<br>"
+    "🛠️ **Sistema ANTARES (Automated Neuroevolutionary Tool for Anticipating Risk of Envenomation by Scorpions)** — Uma Ferramenta Neuroevolutiva Automatizada para Antecipar o Risco de Envenenamento por Escorpiões.<br>"
     "Autores: Dr. Welton Dionisio-da-Silva e Dr. Rodrigo Hirata Willemart.<br>"
     "Financiamento: São Paulo Research Foundation (FAPESP), Brazil, process number #2024/07110-0.",
     unsafe_allow_html=True

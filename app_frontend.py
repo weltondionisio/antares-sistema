@@ -191,7 +191,6 @@ st.markdown("---")
 st.subheader("💬 Assistente Virtual Especializado em Escorpionismo e Risco Regional")
 st.write("Tire dúvidas sobre os dados atuais do painel para a região filtrada ou pergunte sobre medidas de prevenção, sintomas e cuidados com o escorpionismo.")
 
-# Container estilizado para manter a conversa contida
 with st.container():
     st.markdown('<div class="chat-container">', unsafe_allow_html=True)
 
@@ -231,8 +230,9 @@ with st.container():
 
                         prompt_completo = f"Contexto atual do painel do usuário: {contexto_filtros}\n\nPergunta do usuário: {prompt}"
 
+                        # Atualizado para utilizar o modelo compatível gemini-2.5-flash
                         response = client.models.generate_content(
-                            model='gemini-1.5-flash',
+                            model='gemini-2.5-flash',
                             contents=prompt_completo,
                             config={
                                 'system_instruction': system_instruction,

@@ -162,8 +162,8 @@ with col2:
     ))
 
     fig_bar.update_layout(
-        xaxis_title='Mês do Ano',
-        yaxis_title='Volume Esperado',
+        xaxis_title='Mês',
+        yaxis_title='Número estimado de acidentes',
         height=450,
         margin=dict(l=10, r=10, t=20, b=10),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),

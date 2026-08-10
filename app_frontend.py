@@ -75,18 +75,19 @@ if estado_selec != "Todos": df = df[df['estado'] == estado_selec]
 if municipio_selec != "Todos": df = df[df['municipio'] == municipio_selec]
 
 # ==========================================
-# MAPA DE RISCO CONTÍNUO (Substituição de 0 pela mediana e escala 0 a 1)
+# MAPA DE RISCO DINÂMICO (Escala por Estado/Filtro e Sem Zeros)
 # ==========================================
-df_mapa = df_base.groupby(['estado', 'municipio', 'latitude', 'longitude'], observed=False)['acidentes_previstos'].sum().reset_index()
+# Agrupa os dados conforme o filtro aplicado para que o gradiente se ajuste ao escopo (Brasil ou Estado)
+df_mapa = df.groupby(['estado', 'municipio', 'latitude', 'longitude'], observed=False)['acidentes_previstos'].sum().reset_index()
 
-# Substitui valores zero ou nulos pela mediana geral para garantir que nenhum local fique com 0
 mediana_global = df_base['acidentes_previstos'].median()
 if pd.isna(mediana_global) or mediana_global <= 0:
     mediana_global = 0.01
 
+# Garante que nenhum município fique com zero para eliminar as zonas totalmente brancas
 df_mapa['acidentes_previstos'] = df_mapa['acidentes_previstos'].apply(lambda x: mediana_global if pd.isna(x) or x <= 0 else x)
 
-# Normalização Min-Max estrita para a escala 0 a 1 (para interpretação visual)
+# Normalização estrita de 0 a 1 baseada estritamente no conjunto filtrado atual (Estado ou Todos)
 min_v = df_mapa['acidentes_previstos'].min()
 max_v = df_mapa['acidentes_previstos'].max()
 if max_v == min_v:
@@ -101,11 +102,18 @@ with col1:
     
     if estado_selec != "Todos" and not df.empty:
         zoom = 6.0
-        lat_center = df['latitude'].mean()
-        lon_center = df['longitude'].mean()
+        lat_center = df_mapa['latitude'].mean()
+        lon_center = df_mapa['longitude'].mean()
     else:
         zoom = 3.0
         lat_center, lon_center = -14.2350, -51.9253
+
+    # Gradiente personalizado: Amarelo -> Laranja -> Vermelho
+    gradiente_amarelo_vermelho = [
+        [0.0, 'yellow'],
+        [0.5, 'orange'],
+        [1.0, 'red']
+    ]
 
     fig = px.density_mapbox(
         df_mapa, 
@@ -114,8 +122,8 @@ with col1:
         zoom=zoom, center=dict(lat=lat_center, lon=lon_center),
         hover_name='municipio',
         hover_data={'estado': True, 'acidentes_previstos': True, 'risco_0_1': False},
-        color_continuous_scale="Reds",
-        opacity=0.55
+        color_continuous_scale=gradiente_amarelo_vermelho,
+        opacity=0.65
     )
     fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, height=550)
     st.plotly_chart(fig, use_container_width=True)

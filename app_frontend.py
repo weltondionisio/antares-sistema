@@ -89,7 +89,6 @@ if mes_selec != "Ano":
 # ==========================================
 # GARANTIA DA MEDIANA MÍNIMA (Evita valores 0)
 # ==========================================
-# Calcula a mediana global do recorte atual (ou do Brasil se "Todos")
 mediana_referencia = df_base['acidentes_previstos'].median()
 if municipio_selec != "Todos":
     mediana_referencia = df_base[df_base['municipio'] == municipio_selec]['acidentes_previstos'].median()
@@ -99,7 +98,7 @@ elif estado_selec != "Todos":
 if pd.isna(mediana_referencia) or mediana_referencia <= 0:
     mediana_referencia = df_base['acidentes_previstos'].median()
 
-# Substitui valores zero ou nulos pela mediana de referência para garantir que não haja zeros
+# Substitui valores zero ou nulos pela mediana de referência
 df['acidentes_previstos'] = df['acidentes_previstos'].apply(lambda x: mediana_referencia if pd.isna(x) or x <= 0 else x)
 
 if mes_selec == "Ano":
@@ -122,12 +121,13 @@ with col1:
         lat_center = df_mapa['latitude'].mean() if not df_mapa.empty else -14.2350
         lon_center = df_mapa['longitude'].mean() if not df_mapa.empty else -51.9253
     
+    # Raio aumentado para 35 para expandir o gradiente e eliminar as falhas/buracos brancos entre os pontos
     fig = px.density_mapbox(
         df_mapa, 
         lat='latitude', 
         lon='longitude', 
         z='intensidade_heatmap', 
-        radius=25, 
+        radius=35, 
         mapbox_style="carto-positron", 
         zoom=zoom, 
         center=dict(lat=lat_center, lon=lon_center),
@@ -157,7 +157,6 @@ with col2:
         mediana_mes = df['acidentes_previstos'].median()
         st.metric(f"Valor Mínimo Recomendado ({mes_selec})", formatar_br(mediana_mes))
         
-        # Se um único mês estiver selecionado, geramos a base para os 12 meses preenchendo com a mediana de referência
         df_bar = df_base.copy()
         if estado_selec != "Todos": df_bar = df_bar[df_bar['estado'] == estado_selec]
         if municipio_selec != "Todos": df_bar = df_bar[df_bar['municipio'] == municipio_selec]
@@ -166,7 +165,6 @@ with col2:
         df_bar = df_bar.groupby('mes', observed=False)['acidentes_previstos'].median().reindex(ordem_meses).reset_index()
         y_label = 'Previsão de Acidentes'
 
-    # Criação do gráfico de barras com a linha de referência mediana
     fig_bar = px.bar(
         df_bar, 
         x='mes', 
@@ -175,7 +173,6 @@ with col2:
         labels={'mes': 'Mês do Ano', 'acidentes_previstos': y_label}
     )
     
-    # Adiciona a linha horizontal indicando a mediana de referência
     fig_bar.add_hline(
         y=mediana_referencia, 
         line_dash="dash", 
@@ -189,7 +186,7 @@ with col2:
 
 st.markdown("---")
 st.markdown(
-    "🛠️ **Sistema ANTARES (Automated Neuroevolutionary Tool for Anticipating Risk of Envenomation by Scorpions)** — Uma Ferramenta Neuroevolutiva Automatizada para Antecipar o Risco de Envenenamento por Escorpiões.<br>"
+    "🛠️ **Sistema ANTARES (Automated Neuroevolutionary Tool for Anticipating Risk of Envenomation by Scorpions)** — Uma Ferramenta Neuroevolutiva Automatizada para Antecipar o Risco de Envenonamento por Escorpiões.<br>"
     "Autores: Dr. Welton Dionisio-da-Silva e Dr. Rodrigo Hirata Willemart.<br>"
     "Financiamento: São Paulo Research Foundation (FAPESP), Brazil, process number #2024/07110-0.",
     unsafe_allow_html=True

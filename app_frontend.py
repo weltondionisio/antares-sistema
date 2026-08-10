@@ -58,33 +58,49 @@ if estado_selec != "Todos": df = df[df['estado'] == estado_selec]
 if municipio_selec != "Todos": df = df[df['municipio'] == municipio_selec]
 
 # ==========================================
-# TRATAMENTO DE VALORES ZEROS E ESCALA 0-1
+# TRATAMENTO COM MEDIANA MUNICIPAL E ESCALA 0-1
 # ==========================================
-# 1. Agrega o total anual
-df_mapa = df_base.groupby(['estado', 'municipio', 'latitude', 'longitude'], observed=False)['acidentes_previstos'].sum().reset_index()
+# Calcula a mediana por município no dataset base para preencher vazios e zeros
+medianas_por_mun = df_base.groupby(['estado', 'municipio'], observed=False)['acidentes_previstos'].transform(lambda x: x.median())
+mediana_geral_fallback = df_base['acidentes_previstos'].median()
+if pd.isna(mediana_geral_fallback) or mediana_geral_fallback <= 0:
+    mediana_geral_fallback = 0.01
 
-# 2. Aplica a mediana como valor mínimo para garantir que não haja zeros
-mediana_global = df_base['acidentes_previstos'].median()
-df_mapa['acidentes_previstos'] = df_mapa['acidentes_previstos'].clip(lower=mediana_global)
+df_base['acidentes_ajustados'] = df_base['acidentes_previstos']
+mask_zero = df_base['acidentes_ajustados'].isna() | (df_base['acidentes_ajustados'] <= 0)
+df_base.loc[mask_zero, 'acidentes_ajustados'] = medianas_por_mun[mask_zero]
+df_base['acidentes_ajustados'] = df_base['acidentes_ajustados'].fillna(mediana_geral_fallback)
 
-# 3. Escala 0 a 1 baseada no dataset global para manter a consistência visual
-min_v, max_v = df_mapa['acidentes_previstos'].min(), df_mapa['acidentes_previstos'].max()
-df_mapa['risco_0_1'] = (df_mapa['acidentes_previstos'] - min_v) / (max_v - min_v + 1e-9)
+# Filtra conforme a seleção do usuário para o painel
+df_filtrado = df_base.copy()
+if estado_selec != "Todos": df_filtrado = df_filtrado[df_filtrado['estado'] == estado_selec]
+if municipio_selec != "Todos": df_filtrado = df_filtrado[df_filtrado['municipio'] == municipio_selec]
+
+# Agrupamento anual para o mapa
+df_mapa = df_base.groupby(['estado', 'municipio', 'latitude', 'longitude'], observed=False)['acidentes_ajustados'].sum().reset_index()
+
+# Escala 0 a 1 normalizada para o mapa
+min_v, max_v = df_mapa['acidentes_ajustados'].min(), df_mapa['acidentes_ajustados'].max()
+if max_v == min_v:
+    df_mapa['risco_0_1'] = 1.0
+else:
+    df_mapa['risco_0_1'] = (df_mapa['acidentes_ajustados'] - min_v) / (max_v - min_v)
 
 col1, col2 = st.columns([1.5, 1])
 
 with col1:
     st.subheader("🗺️ Mapa de Risco")
     
-    # Se um estado está filtrado, calculamos o centro nele, se não, Brasil
-    lat_center = df['latitude'].mean() if estado_selec != "Todos" else -14.2350
-    lon_center = df['longitude'].mean() if estado_selec != "Todos" else -51.9253
+    lat_center = df_filtrado['latitude'].mean() if estado_selec != "Todos" else -14.2350
+    lon_center = df_filtrado['longitude'].mean() if estado_selec != "Todos" else -51.9253
     zoom = 6 if estado_selec != "Todos" else 3
 
     fig = px.density_mapbox(
         df_mapa, lat='latitude', lon='longitude', z='risco_0_1',
         radius=50, mapbox_style="carto-positron", zoom=zoom,
         center=dict(lat=lat_center, lon=lon_center),
+        hover_name='municipio',
+        hover_data={'estado': True, 'acidentes_ajustados': True, 'risco_0_1': False},
         color_continuous_scale=[[0, 'yellow'], [0.5, 'orange'], [1, 'red']],
         range_color=[0, 1], opacity=0.7
     )
@@ -93,21 +109,36 @@ with col1:
 
 with col2:
     ordem_meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
-    df_sazonal = df.groupby('mes', observed=False)['acidentes_previstos'].sum().reindex(ordem_meses).fillna(mediana_global).reset_index()
+    df_sazonal = df_filtrado.groupby('mes', observed=False)['acidentes_ajustados'].sum().reindex(ordem_meses).reset_index()
     
-    # Cálculo Média Móvel 4 meses
-    vals = np.concatenate([df_sazonal['acidentes_previstos'].values[-2:], df_sazonal['acidentes_previstos'].values, df_sazonal['acidentes_previstos'].values[:2]])
+    # Média móvel de 4 meses
+    vals = np.concatenate([df_sazonal['acidentes_ajustados'].values[-2:], df_sazonal['acidentes_ajustados'].values, df_sazonal['acidentes_ajustados'].values[:2]])
     df_sazonal['media_movel'] = pd.Series(vals).rolling(window=4, center=True).mean().values[2:-2]
     
     def formatar_br(v): return f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     
     st.subheader("📊 Tendência Sazonal (Média Móvel - 4 Meses)")
-    st.metric("Total Anual Previsto", formatar_br(df['acidentes_previstos'].sum()))
+    st.metric("Total Anual Previsto", formatar_br(df_filtrado['acidentes_ajustados'].sum()))
 
     fig_bar = go.Figure()
-    fig_bar.add_trace(go.Bar(x=df_sazonal['mes'], y=df_sazonal['acidentes_previstos'], name='Acidentes', marker_color='#d9534f', marker_line=dict(color='black', width=1.5)))
+    fig_bar.add_trace(go.Bar(x=df_sazonal['mes'], y=df_sazonal['acidentes_ajustados'], name='Acidentes', marker_color='#d9534f', marker_line=dict(color='black', width=1.5)))
     fig_bar.add_trace(go.Scatter(x=df_sazonal['mes'], y=df_sazonal['media_movel'], mode='lines+markers', name='Média Móvel', line=dict(color='yellow', width=3)))
-    fig_bar.update_layout(height=450, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font=dict(color='white'))
+    
+    # Configuração dos eixos X e Y em branco conforme solicitado
+    fig_bar.update_layout(
+        height=450, 
+        plot_bgcolor='rgba(0,0,0,0)', 
+        paper_bgcolor='rgba(0,0,0,0)', 
+        font=dict(color='white'),
+        xaxis=dict(
+            title=dict(text="Mês", font=dict(color='white')),
+            tickfont=dict(color='white')
+        ),
+        yaxis=dict(
+            title=dict(text="Número estimado de acidentes", font=dict(color='white')),
+            tickfont=dict(color='white')
+        )
+    )
     st.plotly_chart(fig_bar, use_container_width=True)
 
 st.markdown("---")

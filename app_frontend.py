@@ -75,19 +75,16 @@ if estado_selec != "Todos": df = df[df['estado'] == estado_selec]
 if municipio_selec != "Todos": df = df[df['municipio'] == municipio_selec]
 
 # ==========================================
-# MAPA DE RISCO DINÂMICO (Escala por Estado/Filtro e Sem Zeros)
+# MAPA DE RISCO DINÂMICO (Escala 0 a 1 e Amarelo como mínimo)
 # ==========================================
-# Agrupa os dados conforme o filtro aplicado para que o gradiente se ajuste ao escopo (Brasil ou Estado)
 df_mapa = df.groupby(['estado', 'municipio', 'latitude', 'longitude'], observed=False)['acidentes_previstos'].sum().reset_index()
 
 mediana_global = df_base['acidentes_previstos'].median()
 if pd.isna(mediana_global) or mediana_global <= 0:
     mediana_global = 0.01
 
-# Garante que nenhum município fique com zero para eliminar as zonas totalmente brancas
 df_mapa['acidentes_previstos'] = df_mapa['acidentes_previstos'].apply(lambda x: mediana_global if pd.isna(x) or x <= 0 else x)
 
-# Normalização estrita de 0 a 1 baseada estritamente no conjunto filtrado atual (Estado ou Todos)
 min_v = df_mapa['acidentes_previstos'].min()
 max_v = df_mapa['acidentes_previstos'].max()
 if max_v == min_v:
@@ -108,8 +105,8 @@ with col1:
         zoom = 3.0
         lat_center, lon_center = -14.2350, -51.9253
 
-    # Gradiente personalizado: Amarelo -> Laranja -> Vermelho
-    gradiente_amarelo_vermelho = [
+    # Gradiente estrito iniciando em amarelo forte para o valor 0 (mínimo)
+    gradiente_amarelo_laranja_vermelho = [
         [0.0, 'yellow'],
         [0.5, 'orange'],
         [1.0, 'red']
@@ -118,12 +115,12 @@ with col1:
     fig = px.density_mapbox(
         df_mapa, 
         lat='latitude', lon='longitude', z='risco_0_1', 
-        radius=40, mapbox_style="carto-positron", 
+        radius=50, mapbox_style="carto-positron", 
         zoom=zoom, center=dict(lat=lat_center, lon=lon_center),
         hover_name='municipio',
         hover_data={'estado': True, 'acidentes_previstos': True, 'risco_0_1': False},
-        color_continuous_scale=gradiente_amarelo_vermelho,
-        opacity=0.65
+        color_continuous_scale=gradiente_amarelo_laranja_vermelho,
+        opacity=0.75
     )
     fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, height=550)
     st.plotly_chart(fig, use_container_width=True)

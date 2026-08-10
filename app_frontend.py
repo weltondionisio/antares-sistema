@@ -67,7 +67,7 @@ df_base.loc[mask_zero, 'acidentes_ajustados'] = medianas_por_mun[mask_zero]
 df_base['acidentes_ajustados'] = df_base['acidentes_ajustados'].fillna(mediana_geral)
 df_base['acidentes_ajustados'] = df_base['acidentes_ajustados'].apply(lambda x: mediana_geral if x <= 0 else x)
 
-# Aplicar filtros selecionados
+# Aplicar filtros selecionados para métricas e gráficos
 df_filtrado = df_base.copy()
 if estado_selec != "Todos": 
     df_filtrado = df_filtrado[df_filtrado['estado'] == estado_selec]
@@ -75,11 +75,10 @@ if municipio_selec != "Todos":
     df_filtrado = df_filtrado[df_filtrado['municipio'] == municipio_selec]
 
 # ==========================================
-# PREPARAÇÃO DADOS DO MAPA (Anual por Município no Escopo Atual)
+# PREPARAÇÃO DADOS DO MAPA (Dinâmico por Escopo Selecionado)
 # ==========================================
 df_mapa = df_filtrado.groupby(['estado', 'municipio', 'latitude', 'longitude'], observed=False)['acidentes_ajustados'].sum().reset_index()
 
-# Suavização Logarítmica para evitar imprecisões e escala [0.2, 1.0] para que o Mapbox NUNCA deixe opacidade 0 (branco)
 df_mapa['val_log'] = np.log1p(df_mapa['acidentes_ajustados'])
 min_v = df_mapa['val_log'].min()
 max_v = df_mapa['val_log'].max()
@@ -87,9 +86,9 @@ max_v = df_mapa['val_log'].max()
 if max_v == min_v:
     df_mapa['risco_z'] = 1.0
 else:
+    # Escala de 0.2 a 1.0 para forçar o mapa a exibir cores vivas sem ficar branco nas pontas
     df_mapa['risco_z'] = 0.2 + 0.8 * ((df_mapa['val_log'] - min_v) / (max_v - min_v))
 
-# Colunas ajustadas para dar mais largura para a direita na seção do gráfico de barras
 col1, col2 = st.columns([1.2, 1.3])
 
 with col1:
@@ -97,7 +96,14 @@ with col1:
     
     lat_center = df_mapa['latitude'].mean() if not df_mapa.empty else -14.2350
     lon_center = df_mapa['longitude'].mean() if not df_mapa.empty else -51.9253
-    zoom = 6 if estado_selec != "Todos" else 3
+    
+    # Zoom dinâmico otimizado para estado ou município
+    if municipio_selec != "Todos":
+        zoom = 8
+    elif estado_selec != "Todos":
+        zoom = 6
+    else:
+        zoom = 3
 
     gradiente_amarelo_laranja_vermelho = [
         [0.0, 'yellow'],
@@ -110,7 +116,7 @@ with col1:
         lat='latitude', 
         lon='longitude', 
         z='risco_z',
-        radius=45, 
+        radius=55,  # Raio ampliado para mesclar as cores perfeitamente no estado
         mapbox_style="carto-positron", 
         zoom=zoom,
         center=dict(lat=lat_center, lon=lon_center),
@@ -118,7 +124,7 @@ with col1:
         hover_data={'estado': True, 'acidentes_ajustados': ':.2f', 'risco_z': False, 'latitude': False, 'longitude': False},
         color_continuous_scale=gradiente_amarelo_laranja_vermelho,
         range_color=[0, 1], 
-        opacity=0.75
+        opacity=0.85  # Opacidade aumentada para cores firmes
     )
     
     fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, height=550)
@@ -154,7 +160,6 @@ with col2:
         line=dict(color='yellow', width=3)
     ))
     
-    # Eixos X e Y em branco e layout otimizado
     fig_bar.update_layout(
         height=320, 
         plot_bgcolor='rgba(0,0,0,0)', 

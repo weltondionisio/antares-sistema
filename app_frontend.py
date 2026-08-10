@@ -111,7 +111,7 @@ else:
 col1, col2 = st.columns([1.2, 1.3])
 
 with col1:
-    st.subheader("Mapa de Risco")
+    st.subheader("🗺️ Mapa de Risco")
     
     lat_center = df_mapa['latitude'].mean() if not df_mapa.empty else -14.2350
     lon_center = df_mapa['longitude'].mean() if not df_mapa.empty else -51.9253
@@ -158,7 +158,7 @@ with col2:
     def formatar_br(v): 
         return f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     
-    st.subheader("Tendência Sazonal (Média Móvel - 4 Meses)")
+    st.subheader("📊 Tendência Sazonal (Média Móvel - 4 Meses)")
     st.metric("Total Anual Previsto", formatar_br(df_filtrado['acidentes_ajustados'].sum()))
 
     fig_bar = go.Figure()
@@ -195,7 +195,7 @@ with col2:
     st.plotly_chart(fig_bar, use_container_width=True)
 
 # ==========================================
-# CHATBOT EM FORMATO DE BALÃO FLUTUANTE (POPOVER)
+# CHATBOT EM FORMATO DE BALÃO FLUTUANTE (Zera ao reabrir/reiniciar)
 # ==========================================
 _, col_chat_btn = st.columns([5, 1])
 
@@ -204,12 +204,8 @@ with col_chat_btn:
         st.markdown("#### 🦂 Chatbot ANTARES")
         st.write("Tire dúvidas sobre os dados atuais do painel ou sobre cuidados com o escorpionismo.")
         
-        if "messages" not in st.session_state:
-            st.session_state.messages = []
-
-        for message in st.session_state.messages:
-            with st.chat_message(message["role"]):
-                st.markdown(message["content"])
+        # Inicializa sempre limpo (zera a conversa ao abrir o popover ou reiniciar a página)
+        st.session_state.messages = []
 
         if prompt := st.chat_input("Digite sua dúvida..."):
             try:
@@ -256,8 +252,9 @@ with col_chat_btn:
                         st.error(f"Erro na API: {e}")
 
 st.markdown("---")
+# Rodapé com espaçamento maior entre a primeira e a segunda linha conforme solicitado
 st.markdown(
-    "**Sistema ANTARES (Automated Neuroevolutionary Tool for Anticipating Risk of Envenomation by Scorpions)**<br><br>"
+    "**Sistema ANTARES (Automated Neuroevolutionary Tool for Anticipating Risk of Envenomation by Scorpions)<br><br>**"
     "Uma Ferramenta Neuroevolutiva Automatizada para Antecipar o Risco de Envenonamento por Escorpiões.<br>"
     "Autores: Dr. Welton Dionisio-da-Silva (USP) e Dr. Rodrigo Hirata Willemart (USP).<br>"
     "Financiamento: São Paulo Research Foundation (FAPESP), Brazil, process number #2024/07110-0.",

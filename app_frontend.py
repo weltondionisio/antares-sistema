@@ -75,10 +75,24 @@ if estado_selec != "Todos": df = df[df['estado'] == estado_selec]
 if municipio_selec != "Todos": df = df[df['municipio'] == municipio_selec]
 
 # ==========================================
-# MAPA DE RISCO CONTÍNUO (Base global para evitar falhas)
+# MAPA DE RISCO CONTÍNUO (Substituição de 0 pela mediana e escala 0 a 1)
 # ==========================================
 df_mapa = df_base.groupby(['estado', 'municipio', 'latitude', 'longitude'], observed=False)['acidentes_previstos'].sum().reset_index()
-df_mapa['intensidade_heatmap'] = np.log1p(df_mapa['acidentes_previstos'])
+
+# Substitui valores zero ou nulos pela mediana geral para garantir que nenhum local fique com 0
+mediana_global = df_base['acidentes_previstos'].median()
+if pd.isna(mediana_global) or mediana_global <= 0:
+    mediana_global = 0.01
+
+df_mapa['acidentes_previstos'] = df_mapa['acidentes_previstos'].apply(lambda x: mediana_global if pd.isna(x) or x <= 0 else x)
+
+# Normalização Min-Max estrita para a escala 0 a 1 (para interpretação visual)
+min_v = df_mapa['acidentes_previstos'].min()
+max_v = df_mapa['acidentes_previstos'].max()
+if max_v == min_v:
+    df_mapa['risco_0_1'] = 1.0
+else:
+    df_mapa['risco_0_1'] = (df_mapa['acidentes_previstos'] - min_v) / (max_v - min_v)
 
 col1, col2 = st.columns([1.5, 1])
 
@@ -95,13 +109,13 @@ with col1:
 
     fig = px.density_mapbox(
         df_mapa, 
-        lat='latitude', lon='longitude', z='intensidade_heatmap', 
+        lat='latitude', lon='longitude', z='risco_0_1', 
         radius=40, mapbox_style="carto-positron", 
         zoom=zoom, center=dict(lat=lat_center, lon=lon_center),
         hover_name='municipio',
-        hover_data={'estado': True, 'acidentes_previstos': True, 'intensidade_heatmap': False},
+        hover_data={'estado': True, 'acidentes_previstos': True, 'risco_0_1': False},
         color_continuous_scale="Reds",
-        opacity=0.55  # Transparência ideal para visualizar o mapa base por baixo
+        opacity=0.55
     )
     fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, height=550)
     st.plotly_chart(fig, use_container_width=True)
@@ -109,7 +123,7 @@ with col1:
 with col2:
     ordem_meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
     
-    df_sazonal = df.groupby('mes', observed=False)['acidentes_previstos'].sum().reindex(ordem_meses).fillna(0).reset_index()
+    df_sazonal = df.groupby('mes', observed=False)['acidentes_previstos'].sum().reindex(ordem_meses).fillna(mediana_global).reset_index()
     valores = df_sazonal['acidentes_previstos'].values
     serie_ciclica = np.concatenate([valores[-2:], valores, valores[:2]])
     df_sazonal['media_movel'] = pd.Series(serie_ciclica).rolling(window=4, center=True).mean().values[2:-2]

@@ -11,18 +11,13 @@ st.set_page_config(page_title="Sistema Antares", layout="wide")
 # ==========================================
 st.markdown("""
     <style>
-    /* Cor de fundo global do Streamlit */
     .stApp {
         background-color: #6c73b7;
         color: #FFFFFF;
     }
-    
-    /* Ajustes para caixas de texto e métricas combinarem com o fundo escuro */
     div[data-testid="stMetricValue"] {
         color: #FFFFFF !important;
     }
-    
-    /* Estilização da barra lateral */
     section[data-testid="stSidebar"] {
         background-color: #585e9e;
     }
@@ -64,7 +59,6 @@ def carregar_dados():
 
 df_base = carregar_dados()
 
-# Filtros na Barra Lateral (Filtro de mês removido)
 st.sidebar.header("⚙️ Filtros do Painel")
 lista_estados = ["Todos"] + sorted(df_base['estado'].unique().tolist())
 estado_selec = st.sidebar.selectbox("Estado:", lista_estados)
@@ -76,57 +70,37 @@ else:
 
 municipio_selec = st.sidebar.selectbox("Município:", opcoes_mun)
 
-# Aplicar filtros base (Estado e Município)
 df = df_base.copy()
-if estado_selec != "Todos": 
-    df = df[df['estado'] == estado_selec]
-if municipio_selec != "Todos": 
-    df = df[df['municipio'] == municipio_selec]
+if estado_selec != "Todos": df = df[df['estado'] == estado_selec]
+if municipio_selec != "Todos": df = df[df['municipio'] == municipio_selec]
 
 # ==========================================
-# TRATAMENTO E MÉDIA MÓVEL (Janela de 4 Meses)
+# TRATAMENTO PARA RISCO (Escala 0 a 1)
 # ==========================================
-df_sazonal = df.groupby('mes', observed=False)['acidentes_previstos'].sum().reindex(['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']).reset_index()
-
-referencia_minima = df_base['acidentes_previstos'].mean() * 0.05
-df_sazonal['acidentes_previstos'] = df_sazonal['acidentes_previstos'].apply(lambda x: referencia_minima if pd.isna(x) or x <= 0 else x)
-
-# Cálculo da Média Móvel com janela de 4 meses (circular para manter o ano contínuo)
-valores_serie = df_sazonal['acidentes_previstos'].values
-serie_ciclica = np.concatenate([valores_serie[-2:], valores_serie, valores_serie[:2]])
-media_movel_ciclica = pd.Series(serie_ciclica).rolling(window=4, center=True).mean().values[2:-2]
-
-df_sazonal['media_movel'] = media_movel_ciclica
-
-# Para o Mapa de Calor (Visão Anual Consolidada)
+# Agrupa para obter a soma anual por localidade
 df_mapa = df.groupby(['estado', 'municipio', 'latitude', 'longitude'], observed=False)['acidentes_previstos'].sum().reset_index()
-df_mapa['intensidade_heatmap'] = np.log1p(df_mapa['acidentes_previstos'])
+
+# Normalização Min-Max para escala 0 a 1 para garantir que não haja áreas brancas (0)
+min_val = df_mapa['acidentes_previstos'].min()
+max_val = df_mapa['acidentes_previstos'].max()
+df_mapa['risco_norm'] = (df_mapa['acidentes_previstos'] - min_val) / (max_val - min_val)
+# Garante que o mínimo seja um valor pequeno mas positivo (ex: 0.1) para não ter branco
+df_mapa['risco_norm'] = df_mapa['risco_norm'].clip(lower=0.1)
 
 col1, col2 = st.columns([1.5, 1])
 
 with col1:
-    st.subheader(f"Mapa de Risco")
-    
-    if estado_selec == "Todos":
-        zoom = 3.0
-        lat_center, lon_center = -14.2350, -51.9253
-    else:
-        zoom = 6.0
-        lat_center = df_mapa['latitude'].mean() if not df_mapa.empty else -14.2350
-        lon_center = df_mapa['longitude'].mean() if not df_mapa.empty else -51.9253
+    st.subheader(f"🗺️ Mapa de Risco")
     
     fig = px.density_mapbox(
         df_mapa, 
-        lat='latitude', 
-        lon='longitude', 
-        z='intensidade_heatmap', 
-        radius=35, 
-        mapbox_style="carto-positron", 
-        zoom=zoom, 
-        center=dict(lat=lat_center, lon=lon_center),
+        lat='latitude', lon='longitude', z='risco_norm', 
+        radius=35, mapbox_style="carto-positron", 
+        zoom=3.0 if estado_selec == "Todos" else 6.0,
+        center=dict(lat=-14.2350, lon=-51.9253),
         hover_name='municipio',
-        hover_data={'estado': True, 'acidentes_previstos': True, 'intensidade_heatmap': False},
-        color_continuous_scale="Reds"
+        color_continuous_scale="Reds",
+        opacity=0.6  # Adicionado para transparência
     )
     fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, height=550)
     st.plotly_chart(fig, use_container_width=True)
@@ -134,50 +108,22 @@ with col1:
 with col2:
     ordem_meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
     
-    def formatar_br(valor):
-        if pd.isna(valor): return "0,00"
-        return f"{valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    # Cálculo da Média Móvel 4 meses
+    df_sazonal = df.groupby('mes', observed=False)['acidentes_previstos'].sum().reindex(ordem_meses).fillna(0.1).reset_index()
+    valores = df_sazonal['acidentes_previstos'].values
+    serie_ciclica = np.concatenate([valores[-2:], valores, valores[:2]])
+    df_sazonal['media_movel'] = pd.Series(serie_ciclica).rolling(window=4, center=True).mean().values[2:-2]
 
-    st.subheader("Tendência Sazonal (Média Móvel - 4 Meses)")
-    total_anual = df['acidentes_previstos'].sum()
-    st.metric("Total Anual Previsto", formatar_br(total_anual))
-
-    # Gráfico combinando as barras mensais e a linha de Média Móvel de 4 meses
-    fig_bar = go.Figure()
-
-    fig_bar.add_trace(go.Bar(
-        x=df_sazonal['mes'],
-        y=df_sazonal['acidentes_previstos'],
-        name='Acidentes Previstos',
-        marker_color='#d9534f',
-        marker_line=dict(color='black', width=1.5)
-    ))
-
-    fig_bar.add_trace(go.Scatter(
-        x=df_sazonal['mes'],
-        y=df_sazonal['media_movel'],
-        mode='lines+markers',
-        name='Média Móvel (4 Meses)',
-        line=dict(color='yellow', width=3)
-    ))
-
-    fig_bar.update_layout(
-        xaxis_title='Mês',
-        yaxis_title='Número estimado de acidentes',
-        height=450,
-        margin=dict(l=10, r=10, t=20, b=10),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        font=dict(color='white')
-    )
+    def formatar_br(v): return f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     
+    st.subheader("📊 Tendência Sazonal (Média Móvel - 4 Meses)")
+    st.metric("Total Anual Previsto", formatar_br(df['acidentes_previstos'].sum()))
+
+    fig_bar = go.Figure()
+    fig_bar.add_trace(go.Bar(x=df_sazonal['mes'], y=df_sazonal['acidentes_previstos'], name='Acidentes', marker_color='#d9534f', marker_line=dict(color='black', width=1.5)))
+    fig_bar.add_trace(go.Scatter(x=df_sazonal['mes'], y=df_sazonal['media_movel'], mode='lines+markers', name='Média Móvel', line=dict(color='yellow', width=3)))
+    fig_bar.update_layout(height=450, margin=dict(l=10, r=10, t=20, b=10), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color='white'))
     st.plotly_chart(fig_bar, use_container_width=True)
 
 st.markdown("---")
-st.markdown(
-    "🛠️ **Sistema ANTARES (Automated Neuroevolutionary Tool for Anticipating Risk of Envenomation by Scorpions)** — Uma Ferramenta Neuroevolutiva Automatizada para Antecipar o Risco de Envenonamento por Escorpiões.<br>"
-    "Autores: Dr. Welton Dionisio-da-Silva (USP) e Dr. Rodrigo Hirata Willemart (USP).<br>"
-    "Financiamento: São Paulo Research Foundation (FAPESP), Brazil, process number #2024/07110-0.",
-    unsafe_allow_html=True
-)
+st.markdown("🛠️ **Sistema ANTARES** — Uma Ferramenta Neuroevolutiva Automatizada para Antecipar o Risco de Envenonamento por Escorpiões.<br>Autores: Dr. Welton Dionisio-da-Silva (USP) e Dr. Rodrigo Hirata Willemart (USP).<br>Financiamento: FAPESP, process number #2024/07110-0.", unsafe_allow_html=True)

@@ -49,16 +49,11 @@ def carregar_dados():
 
 df_base = carregar_dados()
 
-# Filtros na Barra Lateral
+# Filtros na Barra Lateral (Sem campos de API)
 st.sidebar.header("⚙️ Filtros")
 estado_selec = st.sidebar.selectbox("Estado:", ["Todos"] + sorted(df_base['estado'].unique().tolist()))
 opcoes_mun = ["Todos"] + sorted(df_base[df_base['estado'] == estado_selec]['municipio'].unique().tolist()) if estado_selec != "Todos" else ["Todos"] + sorted(df_base['municipio'].unique().tolist())
 municipio_selec = st.sidebar.selectbox("Município:", opcoes_mun)
-
-# Configuração do Chatbot na Barra Lateral
-st.sidebar.markdown("---")
-st.sidebar.header("🤖 Assistente Virtual Antares")
-api_key_input = st.sidebar.text_input("Gemini API Key", type="password", help="Insira sua chave da API do Google Gemini para ativar o chat.")
 
 # ==========================================
 # TRATAMENTO COM MEDIANA MUNICIPAL
@@ -74,7 +69,6 @@ df_base.loc[mask_zero, 'acidentes_ajustados'] = medianas_por_mun[mask_zero]
 df_base['acidentes_ajustados'] = df_base['acidentes_ajustados'].fillna(mediana_geral)
 df_base['acidentes_ajustados'] = df_base['acidentes_ajustados'].apply(lambda x: mediana_geral if x <= 0 else x)
 
-# Aplicar filtros selecionados para métricas e gráficos
 df_filtrado = df_base.copy()
 if estado_selec != "Todos": 
     df_filtrado = df_filtrado[df_filtrado['estado'] == estado_selec]
@@ -182,25 +176,27 @@ with col2:
     st.plotly_chart(fig_bar, use_container_width=True)
 
 # ==========================================
-# SEÇÃO DE CHATBOT INTELIGENTE COM GEMINI
+# SEÇÃO DE CHATBOT INTELIGENTE (Integrado via Secrets)
 # ==========================================
 st.markdown("---")
 st.subheader("💬 Assistente Virtual Especializado em Escorpionismo e Risco Regional")
-st.write(" Tire dúvidas sobre os dados atuais do painel para a região filtrada ou pergunte sobre medidas de prevenção, sintomas e cuidados com o escorpionismo.")
+st.write("Tire dúvidas sobre os dados atuais do painel para a região filtrada ou pergunte sobre medidas de prevenção, sintomas e cuidados com o escorpionismo.")
 
-# Inicializa o histórico de mensagens na sessão
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Exibe o histórico de mensagens na tela
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# Entrada do usuário pelo chat
 if prompt := st.chat_input("Ex: Qual o panorama de risco para esta região selecionada? O que fazer em caso de picada?"):
-    if not api_key_input:
-        st.error("Por favor, insira sua chave da API do Gemini na barra lateral para interagir com o assistente.")
+    try:
+        api_key = st.secrets["GEMINI_API_KEY"]
+    except Exception:
+        api_key = None
+
+    if not api_key:
+        st.error("A chave GEMINI_API_KEY não foi encontrada nos segredos (Secrets) do Streamlit Cloud.")
     else:
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
@@ -209,10 +205,8 @@ if prompt := st.chat_input("Ex: Qual o panorama de risco para esta região selec
         with st.chat_message("assistant"):
             with st.spinner("Consultando dados e diretrizes de saúde pública..."):
                 try:
-                    # Configura o cliente GenAI com a chave informada
-                    client = genai.Client(api_key=api_key_input)
+                    client = genai.Client(api_key=api_key)
                     
-                    # Prepara o contexto atual com base nos filtros do painel
                     total_regiao = df_filtrado['acidentes_ajustados'].sum()
                     contexto_filtros = f"Estado selecionado: {estado_selec}, Município selecionado: {municipio_selec}. Total de acidentes previstos anualmente para este recorte: {total_regiao:.2f} mil."
 
@@ -224,7 +218,6 @@ if prompt := st.chat_input("Ex: Qual o panorama de risco para esta região selec
 
                     prompt_completo = f"Contexto atual do painel do usuário: {contexto_filtros}\n\nPergunta do usuário: {prompt}"
 
-                    # Chamada ao modelo Gemini utilizando a biblioteca oficial google-genai
                     response = client.models.generate_content(
                         model='gemini-2.5-flash',
                         contents=prompt_completo,

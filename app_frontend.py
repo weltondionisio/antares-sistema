@@ -105,7 +105,7 @@ df_mapa['intensidade_heatmap'] = np.log1p(df_mapa['acidentes_previstos'])
 col1, col2 = st.columns([1.5, 1])
 
 with col1:
-    st.subheader(f"🗺️ Mapa de Calor Contínuo (Risco Anual)")
+    st.subheader(f"Mapa de Risco")
     
     if estado_selec == "Todos":
         zoom = 3.0
@@ -138,7 +138,7 @@ with col2:
         if pd.isna(valor): return "0,00"
         return f"{valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-    st.subheader("📊 Tendência Sazonal (Média Móvel - 4 Meses)")
+    st.subheader("Tendência Sazonal (Média Móvel - 4 Meses)")
     total_anual = df['acidentes_previstos'].sum()
     st.metric("Total Anual Previsto", formatar_br(total_anual))
 

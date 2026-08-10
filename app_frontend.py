@@ -195,7 +195,7 @@ with col2:
     st.plotly_chart(fig_bar, use_container_width=True)
 
 # ==========================================
-# CHATBOT EM FORMATO DE BALÃO FLUTUANTE (Zera ao reabrir/reiniciar)
+# CHATBOT EM FORMATO DE BALÃO FLUTUANTE
 # ==========================================
 _, col_chat_btn = st.columns([5, 1])
 
@@ -204,8 +204,14 @@ with col_chat_btn:
         st.markdown("#### 🦂 Chatbot ANTARES")
         st.write("Tire dúvidas sobre os dados atuais do painel ou sobre cuidados com o escorpionismo.")
         
-        # Inicializa sempre limpo (zera a conversa ao abrir o popover ou reiniciar a página)
-        st.session_state.messages = []
+        # Mantém o histórico salvo na sessão para não sumir ao renderizar a resposta
+        if "messages" not in st.session_state:
+            st.session_state.messages = []
+
+        # Exibe o histórico de conversas acumulado
+        for message in st.session_state.messages:
+            with st.chat_message(message["role"]):
+                st.markdown(message["content"])
 
         if prompt := st.chat_input("Digite sua dúvida..."):
             try:
@@ -236,7 +242,7 @@ with col_chat_btn:
                         prompt_completo = f"Contexto atual do painel do usuário: {contexto_filtros}\n\nPergunta do usuário: {prompt}"
 
                         response = client.models.generate_content(
-                            model='gemini-3.1-flash-lite',
+                            model='gemini-2.5-flash',
                             contents=prompt_completo,
                             config={
                                 'system_instruction': system_instruction,

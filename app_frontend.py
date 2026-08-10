@@ -8,7 +8,7 @@ from google import genai
 st.set_page_config(page_title="Sistema Antares", layout="wide")
 
 # ==========================================
-# CUSTOMIZAÇÃO VISUAL: Cor exata #6c73b7 + Caixa do Chat
+# CUSTOMIZAÇÃO VISUAL: Cor exata #6c73b7
 # ==========================================
 st.markdown("""
     <style>
@@ -16,15 +16,6 @@ st.markdown("""
     div[data-testid="stMetricValue"] { color: #FFFFFF !important; }
     div[data-testid="stMetricLabel"] { color: #FFFFFF !important; }
     section[data-testid="stSidebar"] { background-color: #585e9e; }
-    
-    /* Estilização da caixa contenedora do chat para isolar a conversa */
-    .chat-container {
-        background-color: rgba(255, 255, 255, 0.08);
-        border: 1px solid #8b91c8;
-        border-radius: 12px;
-        padding: 20px;
-        margin-bottom: 20px;
-    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -185,37 +176,38 @@ with col2:
     st.plotly_chart(fig_bar, use_container_width=True)
 
 # ==========================================
-# SEÇÃO DE CHATBOT ISOLADO DENTRO DE CONTAINER
+# CHATBOT EM FORMATO DE BALÃO FLUTUANTE (POPOVER)
 # ==========================================
-st.markdown("---")
-st.subheader("💬 Assistente Virtual Especializado em Escorpionismo e Risco Regional")
-st.write("Tire dúvidas sobre os dados atuais do painel para a região filtrada ou pergunte sobre medidas de prevenção, sintomas e cuidados com o escorpionismo.")
+# Criamos colunas para alinhar o botão flutuante do chat inteiramente para a direita
+_, col_chat_btn = st.columns([5, 1])
 
-with st.container():
-    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+with col_chat_btn:
+    with st.popover("💬 Assistente Antares", use_container_width=True):
+        st.markdown("#### 🦂 Chatbot ANTARES")
+        st.write("Tire dúvidas sobre os dados atuais do painel ou sobre cuidados com o escorpionismo.")
+        
+        # Container interno para a conversa dentro do popover
+        if "messages" not in st.session_state:
+            st.session_state.messages = []
 
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
+        for message in st.session_state.messages:
+            with st.chat_message(message["role"]):
+                st.markdown(message["content"])
 
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+        if prompt := st.chat_input("Digite sua dúvida..."):
+            try:
+                api_key = st.secrets["GEMINI_API_KEY"]
+            except Exception:
+                api_key = None
 
-    if prompt := st.chat_input("Ex: Qual o panorama de risco para esta região selecionada? O que fazer em caso de picada?"):
-        try:
-            api_key = st.secrets["GEMINI_API_KEY"]
-        except Exception:
-            api_key = None
+            if not api_key:
+                st.error("A chave GEMINI_API_KEY não foi encontrada nos segredos (Secrets) do Streamlit Cloud.")
+            else:
+                st.session_state.messages.append({"role": "user", "content": prompt})
+                with st.chat_message("user"):
+                    st.markdown(prompt)
 
-        if not api_key:
-            st.error("A chave GEMINI_API_KEY não foi encontrada nos segredos (Secrets) do Streamlit Cloud.")
-        else:
-            st.session_state.messages.append({"role": "user", "content": prompt})
-            with st.chat_message("user"):
-                st.markdown(prompt)
-
-            with st.chat_message("assistant"):
-                with st.spinner("Consultando dados e diretrizes de saúde pública..."):
+                with st.spinner("Analisando..."):
                     try:
                         client = genai.Client(api_key=api_key)
                         
@@ -230,7 +222,6 @@ with st.container():
 
                         prompt_completo = f"Contexto atual do painel do usuário: {contexto_filtros}\n\nPergunta do usuário: {prompt}"
 
-                        # Atualizado para o modelo estável gemini-2.0-flash
                         response = client.models.generate_content(
                             model='gemini-2.0-flash',
                             contents=prompt_completo,
@@ -241,13 +232,11 @@ with st.container():
                         )
                         
                         resposta_texto = response.text
-                        st.markdown(resposta_texto)
                         st.session_state.messages.append({"role": "assistant", "content": resposta_texto})
+                        st.rerun()
                     
                     except Exception as e:
-                        st.error(f"Ocorreu um erro ao comunicar com a API do Gemini: {e}")
-
-    st.markdown('</div>', unsafe_allow_html=True)
+                        st.error(f"Erro na API: {e}")
 
 st.markdown("---")
 st.markdown(

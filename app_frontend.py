@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
+from google import genai
 
 st.set_page_config(page_title="Sistema Antares", layout="wide")
 
@@ -13,7 +14,6 @@ st.markdown("""
     <style>
     .stApp { background-color: #6c73b7; color: #FFFFFF; }
     div[data-testid="stMetricValue"] { color: #FFFFFF !important; }
-    /* ADICIONADO: Deixa o rótulo da métrica em branco */
     div[data-testid="stMetricLabel"] { color: #FFFFFF !important; }
     section[data-testid="stSidebar"] { background-color: #585e9e; }
     </style>
@@ -55,6 +55,11 @@ estado_selec = st.sidebar.selectbox("Estado:", ["Todos"] + sorted(df_base['estad
 opcoes_mun = ["Todos"] + sorted(df_base[df_base['estado'] == estado_selec]['municipio'].unique().tolist()) if estado_selec != "Todos" else ["Todos"] + sorted(df_base['municipio'].unique().tolist())
 municipio_selec = st.sidebar.selectbox("Município:", opcoes_mun)
 
+# Configuração do Chatbot na Barra Lateral
+st.sidebar.markdown("---")
+st.sidebar.header("🤖 Assistente Virtual Antares")
+api_key_input = st.sidebar.text_input("Gemini API Key", type="password", help="Insira sua chave da API do Google Gemini para ativar o chat.")
+
 # ==========================================
 # TRATAMENTO COM MEDIANA MUNICIPAL
 # ==========================================
@@ -77,7 +82,7 @@ if municipio_selec != "Todos":
     df_filtrado = df_filtrado[df_filtrado['municipio'] == municipio_selec]
 
 # ==========================================
-# PREPARAÇÃO DADOS DO MAPA (Dinâmico por Escopo Selecionado)
+# PREPARAÇÃO DADOS DO MAPA
 # ==========================================
 df_mapa = df_filtrado.groupby(['estado', 'municipio', 'latitude', 'longitude'], observed=False)['acidentes_ajustados'].sum().reset_index()
 
@@ -88,18 +93,16 @@ max_v = df_mapa['val_log'].max()
 if max_v == min_v:
     df_mapa['risco_z'] = 1.0
 else:
-    # Escala de 0.2 a 1.0 para forçar o mapa a exibir cores vivas sem ficar branco nas pontas
     df_mapa['risco_z'] = 0.2 + 0.8 * ((df_mapa['val_log'] - min_v) / (max_v - min_v))
 
 col1, col2 = st.columns([1.2, 1.3])
 
 with col1:
-    st.subheader("Mapa de Risco")
+    st.subheader("🗺️ Mapa de Risco")
     
     lat_center = df_mapa['latitude'].mean() if not df_mapa.empty else -14.2350
     lon_center = df_mapa['longitude'].mean() if not df_mapa.empty else -51.9253
     
-    # Zoom dinâmico otimizado para estado ou município
     if municipio_selec != "Todos":
         zoom = 8
     elif estado_selec != "Todos":
@@ -118,7 +121,7 @@ with col1:
         lat='latitude', 
         lon='longitude', 
         z='risco_z',
-        radius=55,  # Raio ampliado para mesclar as cores perfeitamente no estado
+        radius=55, 
         mapbox_style="carto-positron", 
         zoom=zoom,
         center=dict(lat=lat_center, lon=lon_center),
@@ -126,7 +129,7 @@ with col1:
         hover_data={'estado': True, 'acidentes_ajustados': ':.2f', 'risco_z': False, 'latitude': False, 'longitude': False},
         color_continuous_scale=gradiente_amarelo_laranja_vermelho,
         range_color=[0, 1], 
-        opacity=0.85  # Opacidade aumentada para cores firmes
+        opacity=0.85 
     )
     
     fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, height=550)
@@ -136,14 +139,13 @@ with col2:
     ordem_meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
     df_sazonal = df_filtrado.groupby('mes', observed=False)['acidentes_ajustados'].sum().reindex(ordem_meses).reset_index()
     
-    # Média móvel de 4 meses circular
     vals = np.concatenate([df_sazonal['acidentes_ajustados'].values[-2:], df_sazonal['acidentes_ajustados'].values, df_sazonal['acidentes_ajustados'].values[:2]])
     df_sazonal['media_movel'] = pd.Series(vals).rolling(window=4, center=True).mean().values[2:-2]
     
     def formatar_br(v): 
         return f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     
-    st.subheader("Tendência Sazonal (Média Móvel - 4 Meses)")
+    st.subheader("📊 Tendência Sazonal (Média Móvel - 4 Meses)")
     st.metric("Total Anual Previsto", formatar_br(df_filtrado['acidentes_ajustados'].sum()))
 
     fig_bar = go.Figure()
@@ -179,10 +181,69 @@ with col2:
     )
     st.plotly_chart(fig_bar, use_container_width=True)
 
+# ==========================================
+# SEÇÃO DE CHATBOT INTELIGENTE COM GEMINI
+# ==========================================
+st.markdown("---")
+st.subheader("💬 Assistente Virtual Especializado em Escorpionismo e Risco Regional")
+st.write(" Tire dúvidas sobre os dados atuais do painel para a região filtrada ou pergunte sobre medidas de prevenção, sintomas e cuidados com o escorpionismo.")
+
+# Inicializa o histórico de mensagens na sessão
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# Exibe o histórico de mensagens na tela
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+# Entrada do usuário pelo chat
+if prompt := st.chat_input("Ex: Qual o panorama de risco para esta região selecionada? O que fazer em caso de picada?"):
+    if not api_key_input:
+        st.error("Por favor, insira sua chave da API do Gemini na barra lateral para interagir com o assistente.")
+    else:
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        with st.chat_message("assistant"):
+            with st.spinner("Consultando dados e diretrizes de saúde pública..."):
+                try:
+                    # Configura o cliente GenAI com a chave informada
+                    client = genai.Client(api_key=api_key_input)
+                    
+                    # Prepara o contexto atual com base nos filtros do painel
+                    total_regiao = df_filtrado['acidentes_ajustados'].sum()
+                    contexto_filtros = f"Estado selecionado: {estado_selec}, Município selecionado: {municipio_selec}. Total de acidentes previstos anualmente para este recorte: {total_regiao:.2f} mil."
+
+                    system_instruction = (
+                        "Você é o assistente virtual do Sistema ANTARES (Automated Neuroevolutionary Tool for Anticipating Risk of Envenomation by Scorpions). "
+                        "Sua função é auxiliar gestores de saúde pública e cidadãos fornecendo análises precisas baseadas nos dados do painel e orientações médicas/epidemiológicas "
+                        "seguras sobre escorpionismo (prevenção, primeiros socorros, busca por soro antiescorpiônico, etc.)."
+                    )
+
+                    prompt_completo = f"Contexto atual do painel do usuário: {contexto_filtros}\n\nPergunta do usuário: {prompt}"
+
+                    # Chamada ao modelo Gemini utilizando a biblioteca oficial google-genai
+                    response = client.models.generate_content(
+                        model='gemini-2.5-flash',
+                        contents=prompt_completo,
+                        config={
+                            'system_instruction': system_instruction,
+                            'temperature': 0.3,
+                        }
+                    )
+                    
+                    resposta_texto = response.text
+                    st.markdown(resposta_texto)
+                    st.session_state.messages.append({"role": "assistant", "content": resposta_texto})
+                
+                except Exception as e:
+                    st.error(f"Ocorreu um erro ao comunicar com a API do Gemini: {e}")
+
 st.markdown("---")
 st.markdown(
-    "🛠️ **Sistema ANTARES (Automated Neuroevolutionary Tool for Anticipating Risk of Envenomation by Scorpions)**<br>"
-    "Uma Ferramenta Neuroevolutiva Automatizada para Antecipar o Risco de Envenonamento por Escorpiões.<br>"
+    "🛠️ **Sistema ANTARES (Automated Neuroevolutionary Tool for Anticipating Risk of Envenomation by Scorpions)** — Uma Ferramenta Neuroevolutiva Automatizada para Antecipar o Risco de Envenonamento por Escorpiões.<br>"
     "Autores: Dr. Welton Dionisio-da-Silva (USP) e Dr. Rodrigo Hirata Willemart (USP).<br>"
     "Financiamento: São Paulo Research Foundation (FAPESP), Brazil, process number #2024/07110-0.",
     unsafe_allow_html=True

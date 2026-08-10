@@ -242,7 +242,7 @@ with col_chat_btn:
                         prompt_completo = f"Contexto atual do painel do usuário: {contexto_filtros}\n\nPergunta do usuário: {prompt}"
 
                         response = client.models.generate_content(
-                            model='gemini-2.5-flash',
+                            model='gemini-3.1-flash-lite',
                             contents=prompt_completo,
                             config={
                                 'system_instruction': system_instruction,

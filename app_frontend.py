@@ -87,10 +87,10 @@ max_v = df_mapa['val_log'].max()
 if max_v == min_v:
     df_mapa['risco_z'] = 1.0
 else:
-    # Garante intervalo entre 0.2 e 1.0 (impedindo a transparência do Mapbox no menor valor)
     df_mapa['risco_z'] = 0.2 + 0.8 * ((df_mapa['val_log'] - min_v) / (max_v - min_v))
 
-col1, col2 = st.columns([1.5, 1])
+# Colunas ajustadas para dar mais largura para a direita na seção do gráfico de barras
+col1, col2 = st.columns([1.2, 1.3])
 
 with col1:
     st.subheader("🗺️ Mapa de Risco")
@@ -173,4 +173,9 @@ with col2:
     st.plotly_chart(fig_bar, use_container_width=True)
 
 st.markdown("---")
-st.markdown("🛠️ **Sistema ANTARES** — Dr. Welton Dionisio-da-Silva e Dr. Rodrigo Hirata Willemart (USP). Financiamento: FAPESP #2024/07110-0.", unsafe_allow_html=True)
+st.markdown(
+    "🛠️ **Sistema ANTARES (Automated Neuroevolutionary Tool for Anticipating Risk of Envenomation by Scorpions)** — Uma Ferramenta Neuroevolutiva Automatizada para Antecipar o Risco de Envenonamento por Escorpiões.<br>"
+    "Autores: Dr. Welton Dionisio-da-Silva (USP) e Dr. Rodrigo Hirata Willemart (USP).<br>"
+    "Financiamento: São Paulo Research Foundation (FAPESP), Brazil, process number #2024/07110-0.",
+    unsafe_allow_html=True
+)

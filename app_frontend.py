@@ -149,7 +149,8 @@ with col2:
         x=df_sazonal['mes'],
         y=df_sazonal['acidentes_previstos'],
         name='Acidentes Previstos',
-        marker_color='#d9534f'
+        marker_color='#d9534f',
+        marker_line=dict(color='black', width=1.5)
     ))
 
     fig_bar.add_trace(go.Scatter(

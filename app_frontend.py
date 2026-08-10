@@ -58,20 +58,21 @@ if estado_selec != "Todos": df = df[df['estado'] == estado_selec]
 if municipio_selec != "Todos": df = df[df['municipio'] == municipio_selec]
 
 # ==========================================
-# TRATAMENTO COM MEDIANA MUNICIPAL E ESCALA 0-1
+# TRATAMENTO ROBUSTO CONTRA ZEROS (Preenchimento por Mediana e Mínimo Global)
 # ==========================================
-# Calcula a mediana por município no dataset base para preencher vazios e zeros
-medianas_por_mun = df_base.groupby(['estado', 'municipio'], observed=False)['acidentes_previstos'].transform(lambda x: x.median())
-mediana_geral_fallback = df_base['acidentes_previstos'].median()
-if pd.isna(mediana_geral_fallback) or mediana_geral_fallback <= 0:
-    mediana_geral_fallback = 0.01
+mediana_geral = df_base['acidentes_previstos'].median()
+if pd.isna(mediana_geral) or mediana_geral <= 0:
+    mediana_geral = 0.01
 
+# Garante que qualquer valor zero ou nulo receba ao menos a mediana do município ou a mediana geral
+medianas_mun = df_base.groupby(['estado', 'municipio'], observed=False)['acidentes_previstos'].transform(lambda x: x.median())
 df_base['acidentes_ajustados'] = df_base['acidentes_previstos']
-mask_zero = df_base['acidentes_ajustados'].isna() | (df_base['acidentes_ajustados'] <= 0)
-df_base.loc[mask_zero, 'acidentes_ajustados'] = medianas_por_mun[mask_zero]
-df_base['acidentes_ajustados'] = df_base['acidentes_ajustados'].fillna(mediana_geral_fallback)
+mask_invalidos = df_base['acidentes_ajustados'].isna() | (df_base['acidentes_ajustados'] <= 0)
+df_base.loc[mask_invalidos, 'acidentes_ajustados'] = medianas_mun[mask_invalidos]
+df_base['acidentes_ajustados'] = df_base['acidentes_ajustados'].fillna(mediana_geral)
+df_base['acidentes_ajustados'] = df_base['acidentes_ajustados'].apply(lambda x: mediana_geral if x <= 0 else x)
 
-# Filtra conforme a seleção do usuário para o painel
+# Filtra conforme a seleção do usuário
 df_filtrado = df_base.copy()
 if estado_selec != "Todos": df_filtrado = df_filtrado[df_filtrado['estado'] == estado_selec]
 if municipio_selec != "Todos": df_filtrado = df_filtrado[df_filtrado['municipio'] == municipio_selec]
@@ -79,7 +80,7 @@ if municipio_selec != "Todos": df_filtrado = df_filtrado[df_filtrado['municipio'
 # Agrupamento anual para o mapa
 df_mapa = df_base.groupby(['estado', 'municipio', 'latitude', 'longitude'], observed=False)['acidentes_ajustados'].sum().reset_index()
 
-# Escala 0 a 1 normalizada para o mapa
+# Normalização estrita 0 a 1 para o mapa (sempre com base no dataset global para cor contínua)
 min_v, max_v = df_mapa['acidentes_ajustados'].min(), df_mapa['acidentes_ajustados'].max()
 if max_v == min_v:
     df_mapa['risco_0_1'] = 1.0
@@ -124,12 +125,13 @@ with col2:
     fig_bar.add_trace(go.Bar(x=df_sazonal['mes'], y=df_sazonal['acidentes_ajustados'], name='Acidentes', marker_color='#d9534f', marker_line=dict(color='black', width=1.5)))
     fig_bar.add_trace(go.Scatter(x=df_sazonal['mes'], y=df_sazonal['media_movel'], mode='lines+markers', name='Média Móvel', line=dict(color='yellow', width=3)))
     
-    # Configuração dos eixos X e Y em branco conforme solicitado
+    # Altura reduzida e margens ajustadas para eliminar o espaço excessivo acima do gráfico
     fig_bar.update_layout(
-        height=450, 
+        height=320, 
         plot_bgcolor='rgba(0,0,0,0)', 
         paper_bgcolor='rgba(0,0,0,0)', 
         font=dict(color='white'),
+        margin=dict(l=10, r=10, t=10, b=10),
         xaxis=dict(
             title=dict(text="Mês", font=dict(color='white')),
             tickfont=dict(color='white')

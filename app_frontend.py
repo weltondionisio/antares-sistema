@@ -8,7 +8,7 @@ from google import genai
 st.set_page_config(page_title="Sistema Antares", layout="wide")
 
 # ==========================================
-# CUSTOMIZAÇÃO VISUAL: Cor exata #6c73b7
+# CUSTOMIZAÇÃO VISUAL: Cor exata #6c73b7 + Texto preto no Popover
 # ==========================================
 st.markdown("""
     <style>
@@ -16,6 +16,18 @@ st.markdown("""
     div[data-testid="stMetricValue"] { color: #FFFFFF !important; }
     div[data-testid="stMetricLabel"] { color: #FFFFFF !important; }
     section[data-testid="stSidebar"] { background-color: #585e9e; }
+    
+    /* Força todos os textos de títulos, subtítulos, markdown e mensagens dentro do popover para a cor preta */
+    [data-testid="stPopoverBody"] h1, 
+    [data-testid="stPopoverBody"] h2, 
+    [data-testid="stPopoverBody"] h3, 
+    [data-testid="stPopoverBody"] h4, 
+    [data-testid="stPopoverBody"] p, 
+    [data-testid="stPopoverBody"] span, 
+    [data-testid="stPopoverBody"] div, 
+    [data-testid="stPopoverBody"] label {
+        color: #000000 !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -178,7 +190,6 @@ with col2:
 # ==========================================
 # CHATBOT EM FORMATO DE BALÃO FLUTUANTE (POPOVER)
 # ==========================================
-# Criamos colunas para alinhar o botão flutuante do chat inteiramente para a direita
 _, col_chat_btn = st.columns([5, 1])
 
 with col_chat_btn:
@@ -186,7 +197,6 @@ with col_chat_btn:
         st.markdown("#### 🦂 Chatbot ANTARES")
         st.write("Tire dúvidas sobre os dados atuais do painel ou sobre cuidados com o escorpionismo.")
         
-        # Container interno para a conversa dentro do popover
         if "messages" not in st.session_state:
             st.session_state.messages = []
 

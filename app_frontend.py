@@ -64,7 +64,7 @@ def carregar_dados():
 
 df_base = carregar_dados()
 
-# Filtros na Barra Lateral
+# Filtros na Barra Lateral (Filtro de mês removido)
 st.sidebar.header("⚙️ Filtros do Painel")
 lista_estados = ["Todos"] + sorted(df_base['estado'].unique().tolist())
 estado_selec = st.sidebar.selectbox("Estado:", lista_estados)
@@ -75,43 +75,37 @@ else:
     opcoes_mun = ["Todos"] + sorted(df_base['municipio'].unique().tolist())
 
 municipio_selec = st.sidebar.selectbox("Município:", opcoes_mun)
-mes_selec = st.sidebar.selectbox("Mês:", ["Ano"] + df_base['mes'].cat.categories.tolist())
 
-# Aplicar filtros base
+# Aplicar filtros base (Estado e Município)
 df = df_base.copy()
 if estado_selec != "Todos": 
     df = df[df['estado'] == estado_selec]
 if municipio_selec != "Todos": 
     df = df[df['municipio'] == municipio_selec]
-if mes_selec != "Ano": 
-    df = df[df['mes'] == mes_selec]
 
 # ==========================================
-# GARANTIA DA MEDIANA MÍNIMA (Evita valores 0)
+# TRATAMENTO E MÉDIA MÓVEL (Janela de 4 Meses)
 # ==========================================
-mediana_referencia = df_base['acidentes_previstos'].median()
-if municipio_selec != "Todos":
-    mediana_referencia = df_base[df_base['municipio'] == municipio_selec]['acidentes_previstos'].median()
-elif estado_selec != "Todos":
-    mediana_referencia = df_base[df_base['estado'] == estado_selec]['acidentes_previstos'].median()
+df_sazonal = df.groupby('mes', observed=False)['acidentes_previstos'].sum().reindex(['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']).reset_index()
 
-if pd.isna(mediana_referencia) or mediana_referencia <= 0:
-    mediana_referencia = df_base['acidentes_previstos'].median()
+referencia_minima = df_base['acidentes_previstos'].mean() * 0.05
+df_sazonal['acidentes_previstos'] = df_sazonal['acidentes_previstos'].apply(lambda x: referencia_minima if pd.isna(x) or x <= 0 else x)
 
-# Substitui valores zero ou nulos pela mediana de referência
-df['acidentes_previstos'] = df['acidentes_previstos'].apply(lambda x: mediana_referencia if pd.isna(x) or x <= 0 else x)
+# Cálculo da Média Móvel com janela de 4 meses (circular para manter o ano contínuo)
+valores_serie = df_sazonal['acidentes_previstos'].values
+serie_ciclica = np.concatenate([valores_serie[-2:], valores_serie, valores_serie[:2]])
+media_movel_ciclica = pd.Series(serie_ciclica).rolling(window=4, center=True).mean().values[2:-2]
 
-if mes_selec == "Ano":
-    df_mapa = df.groupby(['estado', 'municipio', 'latitude', 'longitude'], observed=False)['acidentes_previstos'].sum().reset_index()
-else:
-    df_mapa = df.copy()
+df_sazonal['media_movel'] = media_movel_ciclica
 
+# Para o Mapa de Calor (Visão Anual Consolidada)
+df_mapa = df.groupby(['estado', 'municipio', 'latitude', 'longitude'], observed=False)['acidentes_previstos'].sum().reset_index()
 df_mapa['intensidade_heatmap'] = np.log1p(df_mapa['acidentes_previstos'])
 
 col1, col2 = st.columns([1.5, 1])
 
 with col1:
-    st.subheader(f"🗺️ Mapa de Calor Contínuo (Risco Ajustado)")
+    st.subheader(f"🗺️ Mapa de Calor Contínuo (Risco Anual)")
     
     if estado_selec == "Todos":
         zoom = 3.0
@@ -121,7 +115,6 @@ with col1:
         lat_center = df_mapa['latitude'].mean() if not df_mapa.empty else -14.2350
         lon_center = df_mapa['longitude'].mean() if not df_mapa.empty else -51.9253
     
-    # Raio aumentado para 35 para expandir o gradiente e eliminar as falhas/buracos brancos entre os pontos
     fig = px.density_mapbox(
         df_mapa, 
         lat='latitude', 
@@ -145,43 +138,39 @@ with col2:
         if pd.isna(valor): return "0,00"
         return f"{valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-    if mes_selec == "Ano":
-        st.subheader("📊 Previsão Sazonal (Total Anual)")
-        total_anual = df.groupby('municipio', observed=False)['acidentes_previstos'].sum().sum() if municipio_selec == "Todos" else df['acidentes_previstos'].sum()
-        st.metric("Total de Acidentes Previstos no Ano", formatar_br(total_anual))
-        
-        df_bar = df.groupby('mes', observed=False)['acidentes_previstos'].sum().reindex(ordem_meses).reset_index()
-        y_label = 'Total Esperado de Acidentes'
-    else:
-        st.subheader(f"📊 Previsão Sazonal (Mês: {mes_selec})")
-        mediana_mes = df['acidentes_previstos'].median()
-        st.metric(f"Valor Mínimo Recomendado ({mes_selec})", formatar_br(mediana_mes))
-        
-        df_bar = df_base.copy()
-        if estado_selec != "Todos": df_bar = df_bar[df_bar['estado'] == estado_selec]
-        if municipio_selec != "Todos": df_bar = df_bar[df_bar['municipio'] == municipio_selec]
-        
-        df_bar['acidentes_previstos'] = df_bar['acidentes_previstos'].apply(lambda x: mediana_referencia if pd.isna(x) or x <= 0 else x)
-        df_bar = df_bar.groupby('mes', observed=False)['acidentes_previstos'].median().reindex(ordem_meses).reset_index()
-        y_label = 'Previsão de Acidentes'
+    st.subheader("📊 Tendência Sazonal (Média Móvel - 4 Meses)")
+    total_anual = df['acidentes_previstos'].sum()
+    st.metric("Total Anual Previsto", formatar_br(total_anual))
 
-    fig_bar = px.bar(
-        df_bar, 
-        x='mes', 
-        y='acidentes_previstos',
-        category_orders={'mes': ordem_meses},
-        labels={'mes': 'Mês do Ano', 'acidentes_previstos': y_label}
+    # Gráfico combinando as barras mensais e a linha de Média Móvel de 4 meses
+    fig_bar = go.Figure()
+
+    fig_bar.add_trace(go.Bar(
+        x=df_sazonal['mes'],
+        y=df_sazonal['acidentes_previstos'],
+        name='Acidentes Previstos',
+        marker_color='#d9534f'
+    ))
+
+    fig_bar.add_trace(go.Scatter(
+        x=df_sazonal['mes'],
+        y=df_sazonal['media_movel'],
+        mode='lines+markers',
+        name='Média Móvel (4 Meses)',
+        line=dict(color='yellow', width=3)
+    ))
+
+    fig_bar.update_layout(
+        xaxis_title='Mês do Ano',
+        yaxis_title='Volume Esperado',
+        height=450,
+        margin=dict(l=10, r=10, t=20, b=10),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        font=dict(color='white')
     )
     
-    fig_bar.add_hline(
-        y=mediana_referencia, 
-        line_dash="dash", 
-        line_color="yellow",
-        annotation_text=f"Mediana de Referência: {formatar_br(mediana_referencia)}",
-        annotation_position="top right"
-    )
-
-    fig_bar.update_layout(height=450, margin=dict(l=10, r=10, t=20, b=10))
     st.plotly_chart(fig_bar, use_container_width=True)
 
 st.markdown("---")

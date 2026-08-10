@@ -154,4 +154,9 @@ with col2:
     st.plotly_chart(fig_bar, use_container_width=True)
 
 st.markdown("---")
-st.markdown("🛠️ **Sistema Antares** — Inteligência Preditiva aplicada à Saúde Pública.")
+st.markdown(
+    "🛠️ **Sistema Antares** — Inteligência Preditiva aplicada à Saúde Pública.<br>"
+    "Autores: Dr. Welton Dionisio-da-Silva e Dr. Rodrigo Hirata Willemart.<br>"
+    "Financiamento: São Paulo Research Foundation (FAPESP), Brazil, process number #2024/07110-0.",
+    unsafe_allow_html=True
+)

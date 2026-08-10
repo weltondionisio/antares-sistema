@@ -111,7 +111,7 @@ else:
 col1, col2 = st.columns([1.2, 1.3])
 
 with col1:
-    st.subheader("🗺️ Mapa de Risco")
+    st.subheader("Mapa de Risco")
     
     lat_center = df_mapa['latitude'].mean() if not df_mapa.empty else -14.2350
     lon_center = df_mapa['longitude'].mean() if not df_mapa.empty else -51.9253
@@ -158,7 +158,7 @@ with col2:
     def formatar_br(v): 
         return f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     
-    st.subheader("📊 Tendência Sazonal (Média Móvel - 4 Meses)")
+    st.subheader("Tendência Sazonal (Média Móvel - 4 Meses)")
     st.metric("Total Anual Previsto", formatar_br(df_filtrado['acidentes_ajustados'].sum()))
 
     fig_bar = go.Figure()
@@ -257,7 +257,9 @@ with col_chat_btn:
 
 st.markdown("---")
 st.markdown(
-    "🛠️ **Sistema ANTARES (Automated Neuroevolutionary Tool for Anticipating Risk of Envenomation by Scorpions)** — Uma Ferramenta Neuroevolutiva Automatizada para Antecipar o Risco de Envenonamento por Escorpiões.<br>"
+    "🛠️ **Sistema ANTARES (Automated Neuroevolutionary Tool for Anticipating Risk of Envenomation by Scorpions)**<br>"
+    "---<br>"
+    "Uma Ferramenta Neuroevolutiva Automatizada para Antecipar o Risco de Envenonamento por Escorpiões.<br>"
     "Autores: Dr. Welton Dionisio-da-Silva (USP) e Dr. Rodrigo Hirata Willemart (USP).<br>"
     "Financiamento: São Paulo Research Foundation (FAPESP), Brazil, process number #2024/07110-0.",
     unsafe_allow_html=True

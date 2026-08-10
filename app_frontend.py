@@ -8,7 +8,7 @@ from google import genai
 st.set_page_config(page_title="Sistema Antares", layout="wide")
 
 # ==========================================
-# CUSTOMIZAÇÃO VISUAL: Cor exata #6c73b7 + Texto preto no Popover
+# CUSTOMIZAÇÃO VISUAL: Cor exata #6c73b7 + Texto preto no Botão e Popover
 # ==========================================
 st.markdown("""
     <style>
@@ -17,7 +17,14 @@ st.markdown("""
     div[data-testid="stMetricLabel"] { color: #FFFFFF !important; }
     section[data-testid="stSidebar"] { background-color: #585e9e; }
     
-    /* Força todos os textos de títulos, subtítulos, markdown e mensagens dentro do popover para a cor preta */
+    /* Força o texto e o ícone do botão do Popover a ficarem pretos */
+    [data-testid="stPopover"] button p, 
+    [data-testid="stPopover"] button span,
+    [data-testid="stPopover"] button {
+        color: #000000 !important;
+    }
+    
+    /* Força todos os textos dentro da caixa do popover expandido para preto */
     [data-testid="stPopoverBody"] h1, 
     [data-testid="stPopoverBody"] h2, 
     [data-testid="stPopoverBody"] h3, 

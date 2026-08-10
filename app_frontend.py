@@ -13,6 +13,8 @@ st.markdown("""
     <style>
     .stApp { background-color: #6c73b7; color: #FFFFFF; }
     div[data-testid="stMetricValue"] { color: #FFFFFF !important; }
+    /* ADICIONADO: Deixa o rótulo da métrica em branco */
+    div[data-testid="stMetricLabel"] { color: #FFFFFF !important; }
     section[data-testid="stSidebar"] { background-color: #585e9e; }
     </style>
 """, unsafe_allow_html=True)
@@ -92,7 +94,7 @@ else:
 col1, col2 = st.columns([1.2, 1.3])
 
 with col1:
-    st.subheader("🗺️ Mapa de Risco")
+    st.subheader("Mapa de Risco")
     
     lat_center = df_mapa['latitude'].mean() if not df_mapa.empty else -14.2350
     lon_center = df_mapa['longitude'].mean() if not df_mapa.empty else -51.9253
@@ -141,7 +143,7 @@ with col2:
     def formatar_br(v): 
         return f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     
-    st.subheader("📊 Tendência Sazonal (Média Móvel - 4 Meses)")
+    st.subheader("Tendência Sazonal (Média Móvel - 4 Meses)")
     st.metric("Total Anual Previsto", formatar_br(df_filtrado['acidentes_ajustados'].sum()))
 
     fig_bar = go.Figure()

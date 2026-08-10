@@ -230,9 +230,9 @@ with st.container():
 
                         prompt_completo = f"Contexto atual do painel do usuário: {contexto_filtros}\n\nPergunta do usuário: {prompt}"
 
-                        # Atualizado para utilizar o modelo compatível gemini-2.5-flash
+                        # Alterado para gemini-1.5-flash para garantir estabilidade com chaves padrão
                         response = client.models.generate_content(
-                            model='gemini-2.5-flash',
+                            model='gemini-1.5-flash',
                             contents=prompt_completo,
                             config={
                                 'system_instruction': system_instruction,

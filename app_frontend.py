@@ -157,7 +157,7 @@ if municipio_selec != "Todos":
     df_soro_filtrado = df_soro_filtrado[df_soro_filtrado['Município'].str.strip().str.lower() == municipio_selec.strip().lower()]
 
 # ==========================================
-# PREPARAÇÃO DADOS DOS MAPAS
+# PREPARAÇÃO DADOS DOS MAPAS E LADO DIREITO
 # ==========================================
 col1, col2 = st.columns([1.2, 1.3])
 
@@ -223,9 +223,10 @@ with col1:
         )
 
         if not df_soro_mapa.empty:
-            lat_center = df_soro_mapa['latitude'].mean()
-            lon_center = df_soro_mapa['longitude'].mean()
-            zoom = 8 if municipio_selec != "Todos" else (6 if estado_selec != "Todos" else 4)
+            # Exibe o Brasil por completo por padrão (ou o estado selecionado) se não houver zoom específico de município
+            lat_center = df_soro_mapa['latitude'].mean() if estado_selec != "Todos" else -14.2350
+            lon_center = df_soro_mapa['longitude'].mean() if estado_selec != "Todos" else -51.9253
+            zoom = 6 if estado_selec != "Todos" else 3
 
             fig_soro = px.scatter_mapbox(
                 df_soro_mapa,
@@ -241,62 +242,75 @@ with col1:
             fig_soro.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, height=550)
             st.plotly_chart(fig_soro, use_container_width=True)
         else:
-            st.info("Não há coordenadas geográficas mapeadas para exibir o mapa interativo deste filtro. Veja a listagem detalhada abaixo:")
-
-        if not df_soro_filtrado.empty:
-            st.markdown("##### 🏥 Unidades Cadastradas (Clique no link para abrir no Google Maps):")
-            for idx, row in df_soro_filtrado.iterrows():
-                st.markdown(f"- **{row['Unidade de Saúde']}** ({row['Município']} - {row['Estado']})<br>"
-                            f"  Endereço: {row['Endereço']} | Contato: {row['Contato']}<br>"
-                            f"  📍 [Abrir localização no Google Maps]({row['google_maps_link']})", unsafe_allow_html=True)
-        else:
-            st.warning("Nenhum centro de atendimento encontrado para os filtros selecionados.")
+            st.info("Nenhuma coordenada encontrada para exibir no mapa com os filtros atuais.")
 
 with col2:
-    ordem_meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
-    df_sazonal = df_filtrado.groupby('mes', observed=False)['acidentes_ajustados'].sum().reindex(ordem_meses).reset_index()
-    
-    vals = np.concatenate([df_sazonal['acidentes_ajustados'].values[-2:], df_sazonal['acidentes_ajustados'].values, df_sazonal['acidentes_ajustados'].values[:2]])
-    df_sazonal['media_movel'] = pd.Series(vals).rolling(window=4, center=True).mean().values[2:-2]
-    
-    def formatar_br(v): 
-        return f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    
-    st.subheader("Tendência Sazonal (Média Móvel - 4 Meses)")
-    st.metric("Total Anual Previsto", formatar_br(df_filtrado['acidentes_ajustados'].sum()))
+    if tipo_mapa == "Mapa de Risco":
+        ordem_meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+        df_sazonal = df_filtrado.groupby('mes', observed=False)['acidentes_ajustados'].sum().reindex(ordem_meses).reset_index()
+        
+        vals = np.concatenate([df_sazonal['acidentes_ajustados'].values[-2:], df_sazonal['acidentes_ajustados'].values, df_sazonal['acidentes_ajustados'].values[:2]])
+        df_sazonal['media_movel'] = pd.Series(vals).rolling(window=4, center=True).mean().values[2:-2]
+        
+        def formatar_br(v): 
+            return f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        
+        st.subheader("Tendência Sazonal (Média Móvel - 4 Meses)")
+        st.metric("Total Anual Previsto", formatar_br(df_filtrado['acidentes_ajustados'].sum()))
 
-    fig_bar = go.Figure()
-    fig_bar.add_trace(go.Bar(
-        x=df_sazonal['mes'], 
-        y=df_sazonal['acidentes_ajustados'], 
-        name='Acidentes', 
-        marker_color='#d9534f', 
-        marker_line=dict(color='black', width=1.5)
-    ))
-    fig_bar.add_trace(go.Scatter(
-        x=df_sazonal['mes'], 
-        y=df_sazonal['media_movel'], 
-        mode='lines+markers', 
-        name='Média Móvel', 
-        line=dict(color='yellow', width=3)
-    ))
-    
-    fig_bar.update_layout(
-        height=320, 
-        plot_bgcolor='rgba(0,0,0,0)', 
-        paper_bgcolor='rgba(0,0,0,0)', 
-        font=dict(color='white'),
-        margin=dict(l=10, r=10, t=10, b=10),
-        xaxis=dict(
-            title=dict(text="Mês", font=dict(color='white')),
-            tickfont=dict(color='white')
-        ),
-        yaxis=dict(
-            title=dict(text="Número estimado de acidentes", font=dict(color='white')),
-            tickfont=dict(color='white')
+        fig_bar = go.Figure()
+        fig_bar.add_trace(go.Bar(
+            x=df_sazonal['mes'], 
+            y=df_sazonal['acidentes_ajustados'], 
+            name='Acidentes', 
+            marker_color='#d9534f', 
+            marker_line=dict(color='black', width=1.5)
+        ))
+        fig_bar.add_trace(go.Scatter(
+            x=df_sazonal['mes'], 
+            y=df_sazonal['media_movel'], 
+            mode='lines+markers', 
+            name='Média Móvel', 
+            line=dict(color='yellow', width=3)
+        ))
+        
+        fig_bar.update_layout(
+            height=320, 
+            plot_bgcolor='rgba(0,0,0,0)', 
+            paper_bgcolor='rgba(0,0,0,0)', 
+            font=dict(color='white'),
+            margin=dict(l=10, r=10, t=10, b=10),
+            xaxis=dict(
+                title=dict(text="Mês", font=dict(color='white')),
+                tickfont=dict(color='white')
+            ),
+            yaxis=dict(
+                title=dict(text="Número estimado de acidentes", font=dict(color='white')),
+                tickfont=dict(color='white')
+            )
         )
-    )
-    st.plotly_chart(fig_bar, use_container_width=True)
+        st.plotly_chart(fig_bar, use_container_width=True)
+    else:
+        st.subheader("🏥 Selecione a Unidade")
+        if not df_soro_filtrado.empty:
+            lista_unidades = sorted(df_soro_filtrado['Unidade de Saúde'].unique().tolist())
+            unidade_escolhida = st.selectbox("Escolha uma unidade de atendimento:", ["Selecione..."] + lista_unidades)
+            
+            if unidade_escolhida != "Selecione...":
+                info_unidade = df_soro_filtrado[df_soro_filtrado['Unidade de Saúde'] == unidade_escolhida].iloc[0]
+                st.markdown(f"""
+                - **Unidade:** {info_unidade['Unidade de Saúde']}
+                - **Município:** {info_unidade['Município']} - {info_unidade['Estado']}
+                - **Endereço:** {info_unidade['Endereço']}
+                - **Contato:** {info_unidade['Contato']}
+                - **CNES:** {info_unidade['CNES']}
+                
+                📍 **[Abrir localização no Google Maps]({info_unidade['google_maps_link']})**
+                """, unsafe_allow_html=True)
+            else:
+                st.info("Selecione uma unidade acima para ver os detalhes e o link de acesso ao Google Maps.")
+        else:
+            st.warning("Nenhum centro de atendimento disponível para esta seleção.")
 
 # ==========================================
 # CHATBOT EM FORMATO DE BALÃO FLUTUANTE

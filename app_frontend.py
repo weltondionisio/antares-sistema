@@ -223,7 +223,7 @@ with col1:
         )
 
         if not df_soro_mapa.empty:
-            # Exibe o Brasil por completo por padrão (ou o estado selecionado) se não houver zoom específico de município
+            # Mostra o Brasil por completo por padrão (zoom 3, centro do Brasil), ajustando se houver estado selecionado
             lat_center = df_soro_mapa['latitude'].mean() if estado_selec != "Todos" else -14.2350
             lon_center = df_soro_mapa['longitude'].mean() if estado_selec != "Todos" else -51.9253
             zoom = 6 if estado_selec != "Todos" else 3
@@ -238,7 +238,8 @@ with col1:
                 zoom=zoom,
                 center=dict(lat=lat_center, lon=lon_center)
             )
-            fig_soro.update_traces(marker=dict(size=14, color='red', symbol='marker'))
+            # Adicionando emoji de hospital (🏥) nos pontos do mapa
+            fig_soro.update_traces(marker=dict(size=14, color='red'), text='🏥', textposition='top center')
             fig_soro.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, height=550)
             st.plotly_chart(fig_soro, use_container_width=True)
         else:

@@ -17,6 +17,15 @@ st.markdown("""
     div[data-testid="stMetricLabel"] { color: #FFFFFF !important; }
     section[data-testid="stSidebar"] { background-color: #585e9e; }
     
+    /* Força o fundo das caixas de seleção (selectbox) na barra lateral a ficarem brancas com texto preto */
+    section[data-testid="stSidebar"] div[data-baseweb="select"] div {
+        background-color: #FFFFFF !important;
+        color: #000000 !important;
+    }
+    section[data-testid="stSidebar"] div[data-baseweb="select"] span {
+        color: #000000 !important;
+    }
+
     /* Força o texto e o ícone do botão do Popover a ficarem pretos */
     [data-testid="stPopover"] button p, 
     [data-testid="stPopover"] button span,
@@ -24,7 +33,11 @@ st.markdown("""
         color: #000000 !important;
     }
     
-    /* Força todos os textos dentro da caixa do popover expandido para preto */
+    /* Força o fundo da caixa do popover (assistente) a ser totalmente branco e o texto preto */
+    [data-testid="stPopoverBody"] {
+        background-color: #FFFFFF !important;
+    }
+    
     [data-testid="stPopoverBody"] h1, 
     [data-testid="stPopoverBody"] h2, 
     [data-testid="stPopoverBody"] h3, 

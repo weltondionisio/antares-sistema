@@ -8,7 +8,7 @@ from google import genai
 st.set_page_config(page_title="Sistema Antares", layout="wide")
 
 # ==========================================
-# CUSTOMIZAÇÃO VISUAL: Cor exata #6c73b7 + Texto preto no Botão e Popover
+# CUSTOMIZAÇÃO VISUAL: Cor exata #6c73b7 + Forçar fundo branco nas caixas de filtro e popover
 # ==========================================
 st.markdown("""
     <style>
@@ -255,7 +255,7 @@ with col_chat_btn:
                         prompt_completo = f"Contexto atual do painel do usuário: {contexto_filtros}\n\nPergunta do usuário: {prompt}"
 
                         response = client.models.generate_content(
-                            model='gemini-3.1-flash-lite',
+                            model='gemini-2.5-flash',
                             contents=prompt_completo,
                             config={
                                 'system_instruction': system_instruction,
@@ -274,7 +274,7 @@ st.markdown("---")
 # Rodapé com espaçamento maior entre a primeira e a segunda linha conforme solicitado
 st.markdown(
     "**Sistema ANTARES (Automated Neuroevolutionary Tool for Anticipating Risk of Envenomation by Scorpions)**<br><br>"
-    "Uma Ferramenta Neuroevolutiva Automatizada para Antecipar o Risco de Envenenamento por Escorpiões.<br>"
+    "Uma Ferramenta Neuroevolutiva Automatizada para Antecipar o Risco de Envenonamento por Escorpiões.<br>"
     "Autor: Dr. Welton Dionisio-da-Silva (USP).<br>"
     "Financiamento: São Paulo Research Foundation (FAPESP), Brazil, process number #2024/07110-0.",
     unsafe_allow_html=True

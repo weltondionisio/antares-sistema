@@ -322,7 +322,7 @@ with col2:
             if st.session_state.unidade_clicada in lista_unidades:
                 indice_atual = lista_unidades.index(st.session_state.unidade_clicada) + 1
 
-            unidade_escolhida = st.selectbox(["Selecione..."] + lista_unidades, index=indice_atual)
+            unidade_escolhida = st.selectbox(" ", ["Selecione..."] + lista_unidades, index=indice_atual)
             
             if unidade_escolhida != "Selecione...":
                 st.session_state.unidade_clicada = unidade_escolhida

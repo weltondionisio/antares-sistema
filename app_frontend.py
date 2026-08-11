@@ -8,7 +8,7 @@ from google import genai
 st.set_page_config(page_title="Sistema Antares", layout="wide")
 
 # ==========================================
-# CUSTOMIZAÇÃO VISUAL: Forçar fundo branco em selects e botões
+# CUSTOMIZAÇÃO VISUAL: Fundo branco e texto preto na caixa de chat e filtros
 # ==========================================
 st.markdown("""
     <style>
@@ -50,6 +50,17 @@ st.markdown("""
     [data-testid="stPopoverBody"] div, 
     [data-testid="stPopoverBody"] label {
         color: #000000 !important;
+    }
+
+    /* Força a caixa de entrada de texto do chat (st.chat_input) a ficar branca com texto preto */
+    [data-testid="stPopoverBody"] div[data-baseweb="base-input"],
+    [data-testid="stPopoverBody"] textarea {
+        background-color: #FFFFFF !important;
+        color: #000000 !important;
+        -webkit-text-fill-color: #000000 !important;
+    }
+    [data-testid="stPopoverBody"] [data-baseweb="base-input"] > div {
+        background-color: #FFFFFF !important;
     }
     </style>
 """, unsafe_allow_html=True)

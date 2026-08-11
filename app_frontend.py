@@ -223,7 +223,6 @@ with col1:
         )
 
         if not df_soro_mapa.empty:
-            # Mostra o Brasil por completo por padrão (zoom 3, centro do Brasil), ajustando se houver estado selecionado
             lat_center = df_soro_mapa['latitude'].mean() if estado_selec != "Todos" else -14.2350
             lon_center = df_soro_mapa['longitude'].mean() if estado_selec != "Todos" else -51.9253
             zoom = 6 if estado_selec != "Todos" else 3
@@ -236,12 +235,23 @@ with col1:
                 hover_data={'Município': True, 'Endereço': True, 'Contato': True, 'latitude': False, 'longitude': False},
                 mapbox_style="carto-positron",
                 zoom=zoom,
-                center=dict(lat=lat_center, lon=lon_center)
+                center=dict(lat=lat_center, lon=lon_center),
+                custom_data=['Unidade de Saúde']
             )
-            # Adicionando emoji de hospital (🏥) nos pontos do mapa
             fig_soro.update_traces(marker=dict(size=14, color='red'), text='🏥', textposition='top center')
             fig_soro.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, height=550)
-            st.plotly_chart(fig_soro, use_container_width=True)
+            
+            # Captura o clique no ponto do mapa do Plotly
+            evento_mapa = st.plotly_chart(fig_soro, use_container_width=True, on_select="rerun", selection_mode="points")
+            
+            # Sincroniza a seleção do mapa com a sessão
+            if "unidade_clicada" not in st.session_state:
+                st.session_state.unidade_clicada = "Selecione..."
+
+            if evento_mapa and "selection" in evento_mapa and evento_mapa["selection"].get("points"):
+                ponto = evento_mapa["selection"]["points"][0]
+                if "customdata" in ponto and ponto["customdata"]:
+                    st.session_state.unidade_clicada = ponto["customdata"][0]
         else:
             st.info("Nenhuma coordenada encontrada para exibir no mapa com os filtros atuais.")
 
@@ -295,9 +305,19 @@ with col2:
         st.subheader("🏥 Selecione a Unidade")
         if not df_soro_filtrado.empty:
             lista_unidades = sorted(df_soro_filtrado['Unidade de Saúde'].unique().tolist())
-            unidade_escolhida = st.selectbox("Escolha uma unidade de atendimento:", ["Selecione..."] + lista_unidades)
+            
+            if "unidade_clicada" not in st.session_state:
+                st.session_state.unidade_clicada = "Selecione..."
+
+            # Garante que a unidade clicada esteja na lista
+            indice_atual = 0
+            if st.session_state.unidade_clicada in lista_unidades:
+                indice_atual = lista_unidades.index(st.session_state.unidade_clicada) + 1
+
+            unidade_escolhida = st.selectbox("Escolha uma unidade de atendimento:", ["Selecione..."] + lista_unidades, index=indice_atual)
             
             if unidade_escolhida != "Selecione...":
+                st.session_state.unidade_clicada = unidade_escolhida
                 info_unidade = df_soro_filtrado[df_soro_filtrado['Unidade de Saúde'] == unidade_escolhida].iloc[0]
                 st.markdown(f"""
                 - **Unidade:** {info_unidade['Unidade de Saúde']}
@@ -309,7 +329,7 @@ with col2:
                 📍 **[Abrir localização no Google Maps]({info_unidade['google_maps_link']})**
                 """, unsafe_allow_html=True)
             else:
-                st.info("Selecione uma unidade acima para ver os detalhes e o link de acesso ao Google Maps.")
+                st.info("Clique em um ponto no mapa ou selecione uma unidade acima para ver os detalhes e o link de acesso ao Google Maps.")
         else:
             st.warning("Nenhum centro de atendimento disponível para esta seleção.")
 

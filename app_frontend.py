@@ -3,12 +3,13 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
+import urllib.parse
 from google import genai
 
 st.set_page_config(page_title="Sistema Antares", layout="wide")
 
 # ==========================================
-# CUSTOMIZAÇÃO VISUAL: Cor exata #6c73b7 + Texto preto no Botão e Popover
+# CUSTOMIZAÇÃO VISUAL: Fundo branco e texto preto nas caixas de input/chat/filtros
 # ==========================================
 st.markdown("""
     <style>
@@ -52,9 +53,10 @@ st.markdown("""
         color: #000000 !important;
     }
 
-    /* Força a caixa de entrada de texto do chat (st.chat_input) a ficar branca com texto preto */
+    /* Força a caixa de digitação/entrada de texto do chat para fundo branco e texto preto */
     [data-testid="stPopoverBody"] div[data-baseweb="base-input"],
-    [data-testid="stPopoverBody"] textarea {
+    [data-testid="stPopoverBody"] textarea,
+    [data-testid="stPopoverBody"] input {
         background-color: #FFFFFF !important;
         color: #000000 !important;
         -webkit-text-fill-color: #000000 !important;
@@ -93,10 +95,36 @@ def carregar_dados():
     df['mes'] = pd.Categorical(df['mes'], categories=ordem_meses, ordered=True)
     return df
 
+@st.cache_data
+def carregar_pontos_soro():
+    try:
+        df_soro = pd.read_csv("Pontos Estratégicos de Soro Antiveneno de Escorpiões.csv", sep=";")
+    except Exception:
+        try:
+            df_soro = pd.read_csv("Pontos Estratégicos de Soro Antiveneno de Escorpiões.csv", sep=",")
+        except Exception:
+            df_soro = pd.DataFrame(columns=['Estado', 'Município', 'Unidade de Saúde', 'Endereço', 'Contato', 'CNES'])
+    
+    df_soro.columns = [c.strip() for c in df_soro.columns]
+    for col in ['Estado', 'Município', 'Unidade de Saúde', 'Endereço', 'Contato', 'CNES']:
+        if col not in df_soro.columns:
+            df_soro[col] = 'Indisponível'
+    
+    def gerar_link_maps(row):
+        query = f"{row['Unidade de Saúde']}, {row['Município']} - {row['Estado']}, {row['Endereço']}"
+        encoded_query = urllib.parse.quote(query)
+        return f"https://www.google.com/maps/search/?api=1&query={encoded_query}"
+
+    df_soro['google_maps_link'] = df_soro.apply(gerar_link_maps, axis=1)
+    return df_soro
+
 df_base = carregar_dados()
+df_soro_base = carregar_pontos_soro()
 
 # Filtros na Barra Lateral
 st.sidebar.header("⚙️ Filtros")
+tipo_mapa = st.sidebar.selectbox("Selecionar Mapa:", ["Mapa de Risco", "Mapa de Centros de Atendimento"])
+
 estado_selec = st.sidebar.selectbox("Estado:", ["Todos"] + sorted(df_base['estado'].unique().tolist()))
 opcoes_mun = ["Todos"] + sorted(df_base[df_base['estado'] == estado_selec]['municipio'].unique().tolist()) if estado_selec != "Todos" else ["Todos"] + sorted(df_base['municipio'].unique().tolist())
 municipio_selec = st.sidebar.selectbox("Município:", opcoes_mun)
@@ -121,59 +149,108 @@ if estado_selec != "Todos":
 if municipio_selec != "Todos": 
     df_filtrado = df_filtrado[df_filtrado['municipio'] == municipio_selec]
 
+# Filtragem do dataframe de soro
+df_soro_filtrado = df_soro_base.copy()
+if estado_selec != "Todos":
+    df_soro_filtrado = df_soro_filtrado[df_soro_filtrado['Estado'].str.strip().str.lower() == estado_selec.strip().lower()]
+if municipio_selec != "Todos":
+    df_soro_filtrado = df_soro_filtrado[df_soro_filtrado['Município'].str.strip().str.lower() == municipio_selec.strip().lower()]
+
 # ==========================================
-# PREPARAÇÃO DADOS DO MAPA
+# PREPARAÇÃO DADOS DOS MAPAS
 # ==========================================
-df_mapa = df_filtrado.groupby(['estado', 'municipio', 'latitude', 'longitude'], observed=False)['acidentes_ajustados'].sum().reset_index()
-
-df_mapa['val_log'] = np.log1p(df_mapa['acidentes_ajustados'])
-min_v = df_mapa['val_log'].min()
-max_v = df_mapa['val_log'].max()
-
-if max_v == min_v:
-    df_mapa['risco_z'] = 1.0
-else:
-    df_mapa['risco_z'] = 0.2 + 0.8 * ((df_mapa['val_log'] - min_v) / (max_v - min_v))
-
 col1, col2 = st.columns([1.2, 1.3])
 
 with col1:
-    st.subheader("Mapa de Risco")
-    
-    lat_center = df_mapa['latitude'].mean() if not df_mapa.empty else -14.2350
-    lon_center = df_mapa['longitude'].mean() if not df_mapa.empty else -51.9253
-    
-    if municipio_selec != "Todos":
-        zoom = 8
-    elif estado_selec != "Todos":
-        zoom = 6
+    if tipo_mapa == "Mapa de Risco":
+        st.subheader("Mapa de Risco")
+        
+        df_mapa = df_filtrado.groupby(['estado', 'municipio', 'latitude', 'longitude'], observed=False)['acidentes_ajustados'].sum().reset_index()
+
+        df_mapa['val_log'] = np.log1p(df_mapa['acidentes_ajustados'])
+        min_v = df_mapa['val_log'].min()
+        max_v = df_mapa['val_log'].max()
+
+        if max_v == min_v:
+            df_mapa['risco_z'] = 1.0
+        else:
+            df_mapa['risco_z'] = 0.2 + 0.8 * ((df_mapa['val_log'] - min_v) / (max_v - min_v))
+        
+        lat_center = df_mapa['latitude'].mean() if not df_mapa.empty else -14.2350
+        lon_center = df_mapa['longitude'].mean() if not df_mapa.empty else -51.9253
+        
+        if municipio_selec != "Todos":
+            zoom = 8
+        elif estado_selec != "Todos":
+            zoom = 6
+        else:
+            zoom = 3
+
+        gradiente_amarelo_laranja_vermelho = [
+            [0.0, 'yellow'],
+            [0.5, 'orange'],
+            [1.0, 'red']
+        ]
+
+        fig = px.density_mapbox(
+            df_mapa, 
+            lat='latitude', 
+            lon='longitude', 
+            z='risco_z',
+            radius=55, 
+            mapbox_style="carto-positron", 
+            zoom=zoom,
+            center=dict(lat=lat_center, lon=lon_center),
+            hover_name='municipio',
+            hover_data={'estado': True, 'acidentes_ajustados': ':.2f', 'risco_z': False, 'latitude': False, 'longitude': False},
+            color_continuous_scale=gradiente_amarelo_laranja_vermelho,
+            range_color=[0, 1], 
+            opacity=0.85 
+        )
+        fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, height=550)
+        st.plotly_chart(fig, use_container_width=True)
+
     else:
-        zoom = 3
+        st.subheader("Mapa de Centros de Atendimento (Soro Antiveneno)")
+        
+        df_geo_aux = df_base[['estado', 'municipio', 'latitude', 'longitude']].drop_duplicates(subset=['estado', 'municipio'])
+        df_soro_mapa = pd.merge(
+            df_soro_filtrado, 
+            df_geo_aux, 
+            left_on=['Estado', 'Município'], 
+            right_on=['estado', 'municipio'], 
+            how='inner'
+        )
 
-    gradiente_amarelo_laranja_vermelho = [
-        [0.0, 'yellow'],
-        [0.5, 'orange'],
-        [1.0, 'red']
-    ]
+        if not df_soro_mapa.empty:
+            lat_center = df_soro_mapa['latitude'].mean()
+            lon_center = df_soro_mapa['longitude'].mean()
+            zoom = 8 if municipio_selec != "Todos" else (6 if estado_selec != "Todos" else 4)
 
-    fig = px.density_mapbox(
-        df_mapa, 
-        lat='latitude', 
-        lon='longitude', 
-        z='risco_z',
-        radius=55, 
-        mapbox_style="carto-positron", 
-        zoom=zoom,
-        center=dict(lat=lat_center, lon=lon_center),
-        hover_name='municipio',
-        hover_data={'estado': True, 'acidentes_ajustados': ':.2f', 'risco_z': False, 'latitude': False, 'longitude': False},
-        color_continuous_scale=gradiente_amarelo_laranja_vermelho,
-        range_color=[0, 1], 
-        opacity=0.85 
-    )
-    
-    fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, height=550)
-    st.plotly_chart(fig, use_container_width=True)
+            fig_soro = px.scatter_mapbox(
+                df_soro_mapa,
+                lat='latitude',
+                lon='longitude',
+                hover_name='Unidade de Saúde',
+                hover_data={'Município': True, 'Endereço': True, 'Contato': True, 'latitude': False, 'longitude': False},
+                mapbox_style="carto-positron",
+                zoom=zoom,
+                center=dict(lat=lat_center, lon=lon_center)
+            )
+            fig_soro.update_traces(marker=dict(size=14, color='red', symbol='marker'))
+            fig_soro.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, height=550)
+            st.plotly_chart(fig_soro, use_container_width=True)
+        else:
+            st.info("Não há coordenadas geográficas mapeadas para exibir o mapa interativo deste filtro. Veja a listagem detalhada abaixo:")
+
+        if not df_soro_filtrado.empty:
+            st.markdown("##### 🏥 Unidades Cadastradas (Clique no link para abrir no Google Maps):")
+            for idx, row in df_soro_filtrado.iterrows():
+                st.markdown(f"- **{row['Unidade de Saúde']}** ({row['Município']} - {row['Estado']})<br>"
+                            f"  Endereço: {row['Endereço']} | Contato: {row['Contato']}<br>"
+                            f"  📍 [Abrir localização no Google Maps]({row['google_maps_link']})", unsafe_allow_html=True)
+        else:
+            st.warning("Nenhum centro de atendimento encontrado para os filtros selecionados.")
 
 with col2:
     ordem_meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
@@ -231,11 +308,9 @@ with col_chat_btn:
         st.markdown("#### 🦂 Chatbot ANTARES")
         st.write("Tire dúvidas sobre os dados atuais do painel ou sobre cuidados com o escorpionismo.")
         
-        # Mantém o histórico salvo na sessão para não sumir ao renderizar a resposta
         if "messages" not in st.session_state:
             st.session_state.messages = []
 
-        # Exibe o histórico de conversas acumulado
         for message in st.session_state.messages:
             with st.chat_message(message["role"]):
                 st.markdown(message["content"])
@@ -285,10 +360,9 @@ with col_chat_btn:
                         st.error(f"Erro na API: {e}")
 
 st.markdown("---")
-# Rodapé com espaçamento maior entre a primeira e a segunda linha conforme solicitado
 st.markdown(
     "**Sistema ANTARES (Automated Neuroevolutionary Tool for Anticipating Risk of Envenomation by Scorpions)**<br><br>"
-    "Uma Ferramenta Neuroevolutiva Automatizada para Antecipar o Risco de Envenenamento por Escorpiões.<br>"
+    "Uma Ferramenta Neuroevolutiva Automatizada para Antecipar o Risco de Envenonamento por Escorpiões.<br>"
     "Autor: Dr. Welton Dionisio-da-Silva (Universidade de São Paulo/USP).<br>"
     "Financiamento: São Paulo Research Foundation (FAPESP), Brazil, process number #2024/07110-0.",
     unsafe_allow_html=True

@@ -8,7 +8,7 @@ from google import genai
 st.set_page_config(page_title="Sistema Antares", layout="wide")
 
 # ==========================================
-# CUSTOMIZAÇÃO VISUAL: Cor exata #6c73b7 + Forçar fundo branco nas caixas de filtro e popover
+# CUSTOMIZAÇÃO VISUAL: Forçar fundo branco em selects e botões
 # ==========================================
 st.markdown("""
     <style>
@@ -17,8 +17,8 @@ st.markdown("""
     div[data-testid="stMetricLabel"] { color: #FFFFFF !important; }
     section[data-testid="stSidebar"] { background-color: #585e9e; }
     
-    /* Força o fundo das caixas de seleção (selectbox) na barra lateral a ficarem brancas com texto preto */
-    section[data-testid="stSidebar"] div[data-baseweb="select"] div {
+    /* Força o fundo dos seletores na barra lateral para branco com texto preto */
+    section[data-testid="stSidebar"] div[data-baseweb="select"] > div {
         background-color: #FFFFFF !important;
         color: #000000 !important;
     }
@@ -26,18 +26,21 @@ st.markdown("""
         color: #000000 !important;
     }
 
-    /* Força o texto e o ícone do botão do Popover a ficarem pretos */
+    /* Força o botão flutuante do popover (Assistente Antares) para fundo branco e texto preto */
+    [data-testid="stPopover"] button {
+        background-color: #FFFFFF !important;
+        border-color: #FFFFFF !important;
+    }
     [data-testid="stPopover"] button p, 
     [data-testid="stPopover"] button span,
-    [data-testid="stPopover"] button {
+    [data-testid="stPopover"] button div {
         color: #000000 !important;
     }
     
-    /* Força o fundo da caixa do popover (assistente) a ser totalmente branco e o texto preto */
+    /* Força o conteúdo interno do popover expandido para fundo branco e texto preto */
     [data-testid="stPopoverBody"] {
         background-color: #FFFFFF !important;
     }
-    
     [data-testid="stPopoverBody"] h1, 
     [data-testid="stPopoverBody"] h2, 
     [data-testid="stPopoverBody"] h3, 

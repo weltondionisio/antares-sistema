@@ -8,7 +8,7 @@ from google import genai
 st.set_page_config(page_title="Sistema Antares", layout="wide")
 
 # ==========================================
-# CUSTOMIZAÇÃO VISUAL: Fundo branco e texto preto na caixa de chat e filtros
+# CUSTOMIZAÇÃO VISUAL: Cor exata #6c73b7 + Texto preto no Botão e Popover
 # ==========================================
 st.markdown("""
     <style>
@@ -17,30 +17,14 @@ st.markdown("""
     div[data-testid="stMetricLabel"] { color: #FFFFFF !important; }
     section[data-testid="stSidebar"] { background-color: #585e9e; }
     
-    /* Força o fundo dos seletores na barra lateral para branco com texto preto */
-    section[data-testid="stSidebar"] div[data-baseweb="select"] > div {
-        background-color: #FFFFFF !important;
-        color: #000000 !important;
-    }
-    section[data-testid="stSidebar"] div[data-baseweb="select"] span {
-        color: #000000 !important;
-    }
-
-    /* Força o botão flutuante do popover (Assistente Antares) para fundo branco e texto preto */
-    [data-testid="stPopover"] button {
-        background-color: #FFFFFF !important;
-        border-color: #FFFFFF !important;
-    }
+    /* Força o texto e o ícone do botão do Popover a ficarem pretos */
     [data-testid="stPopover"] button p, 
     [data-testid="stPopover"] button span,
-    [data-testid="stPopover"] button div {
+    [data-testid="stPopover"] button {
         color: #000000 !important;
     }
     
-    /* Força o conteúdo interno do popover expandido para fundo branco e texto preto */
-    [data-testid="stPopoverBody"] {
-        background-color: #FFFFFF !important;
-    }
+    /* Força todos os textos dentro da caixa do popover expandido para preto */
     [data-testid="stPopoverBody"] h1, 
     [data-testid="stPopoverBody"] h2, 
     [data-testid="stPopoverBody"] h3, 
@@ -50,17 +34,6 @@ st.markdown("""
     [data-testid="stPopoverBody"] div, 
     [data-testid="stPopoverBody"] label {
         color: #000000 !important;
-    }
-
-    /* Força a caixa de entrada de texto do chat (st.chat_input) a ficar branca com texto preto */
-    [data-testid="stPopoverBody"] div[data-baseweb="base-input"],
-    [data-testid="stPopoverBody"] textarea {
-        background-color: #FFFFFF !important;
-        color: #000000 !important;
-        -webkit-text-fill-color: #000000 !important;
-    }
-    [data-testid="stPopoverBody"] [data-baseweb="base-input"] > div {
-        background-color: #FFFFFF !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -269,7 +242,7 @@ with col_chat_btn:
                         prompt_completo = f"Contexto atual do painel do usuário: {contexto_filtros}\n\nPergunta do usuário: {prompt}"
 
                         response = client.models.generate_content(
-                            model='gemini-3.1-flash-lit',
+                            model='gemini-3.1-flash-lite',
                             contents=prompt_completo,
                             config={
                                 'system_instruction': system_instruction,
@@ -289,7 +262,7 @@ st.markdown("---")
 st.markdown(
     "**Sistema ANTARES (Automated Neuroevolutionary Tool for Anticipating Risk of Envenomation by Scorpions)**<br><br>"
     "Uma Ferramenta Neuroevolutiva Automatizada para Antecipar o Risco de Envenonamento por Escorpiões.<br>"
-    "Autor: Dr. Welton Dionisio-da-Silva (USP).<br>"
+    "Autores: Dr. Welton Dionisio-da-Silva (USP) e Dr. Rodrigo Hirata Willemart (USP).<br>"
     "Financiamento: São Paulo Research Foundation (FAPESP), Brazil, process number #2024/07110-0.",
     unsafe_allow_html=True
 )

@@ -18,6 +18,14 @@ st.markdown("""
     div[data-testid="stMetricLabel"] { color: #FFFFFF !important; }
     section[data-testid="stSidebar"] { background-color: #585e9e; }
     
+    /* Força o texto dentro do st.info a ficar branco */
+    div[data-baseweb="notification"] p, 
+    div[data-baseweb="notification"] span,
+    div[data-testid="stInfo"] p,
+    div[data-testid="stInfo"] span {
+        color: #FFFFFF !important;
+    }
+    
     /* Força o fundo dos seletores na barra lateral para branco com texto preto */
     section[data-testid="stSidebar"] div[data-baseweb="select"] > div {
         background-color: #FFFFFF !important;
@@ -302,7 +310,7 @@ with col2:
         )
         st.plotly_chart(fig_bar, use_container_width=True)
     else:
-        st.subheader("🏥 Selecione a Unidade")
+        st.subheader("Selecione a Unidade de Atendimento para mais informações:")
         if not df_soro_filtrado.empty:
             lista_unidades = sorted(df_soro_filtrado['Unidade de Saúde'].unique().tolist())
             
@@ -314,7 +322,7 @@ with col2:
             if st.session_state.unidade_clicada in lista_unidades:
                 indice_atual = lista_unidades.index(st.session_state.unidade_clicada) + 1
 
-            unidade_escolhida = st.selectbox("Escolha uma unidade de atendimento:", ["Selecione..."] + lista_unidades, index=indice_atual)
+            unidade_escolhida = st.selectbox(["Selecione..."] + lista_unidades, index=indice_atual)
             
             if unidade_escolhida != "Selecione...":
                 st.session_state.unidade_clicada = unidade_escolhida
@@ -329,7 +337,7 @@ with col2:
                 📍 **[Abrir localização no Google Maps]({info_unidade['google_maps_link']})**
                 """, unsafe_allow_html=True)
             else:
-                st.info("Clique em um ponto no mapa ou selecione uma unidade acima para ver os detalhes e o link de acesso ao Google Maps.")
+                st.info("Clique em um ponto no mapa ou selecione uma unidade acima para ver os detalhes e o localização no Google Maps.")
         else:
             st.warning("Nenhum centro de atendimento disponível para esta seleção.")
 

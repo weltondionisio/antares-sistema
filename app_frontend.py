@@ -288,7 +288,7 @@ st.markdown("---")
 # Rodapé com espaçamento maior entre a primeira e a segunda linha conforme solicitado
 st.markdown(
     "**Sistema ANTARES (Automated Neuroevolutionary Tool for Anticipating Risk of Envenomation by Scorpions)**<br><br>"
-    "Uma Ferramenta Neuroevolutiva Automatizada para Antecipar o Risco de Envenonamento por Escorpiões.<br>"
+    "Uma Ferramenta Neuroevolutiva Automatizada para Antecipar o Risco de Envenenamento por Escorpiões.<br>"
     "Autor: Dr. Welton Dionisio-da-Silva (USP).<br>"
     "Financiamento: São Paulo Research Foundation (FAPESP), Brazil, process number #2024/07110-0.",
     unsafe_allow_html=True

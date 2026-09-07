@@ -10,8 +10,8 @@ Disponível em: https://antares-sistema.streamlit.app/
 ---
 
 <p align="center">
-  <h3>Demonstração do Protótipo</h3>
-  <a href="https://www.youtube.com/watch?v=5Sxz1rX-Jtw">
-    <img src="https://img.youtube.com/vi/5Sxz1rX-Jtw/hqdefault.jpg" alt="Demonstração do Protótipo" width="800px">
+  <h3>🎬 Assistir à demonstração em vídeo do protótipo</h3>
+  <a href="https://youtu.be/5Sxz1rX-Jtw">
+    <img src="https://img.youtube.com/vi/5Sxz1rX-Jtw/maxresdefault.jpg" alt="Sistema Antares - Demo do Protótipo" width="800px">
   </a>
 </p>

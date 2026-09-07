@@ -200,13 +200,13 @@ with col1:
             [1.0, 'red']
         ]
 
-        fig = px.density_mapbox(
+        fig = px.density_map(
             df_mapa, 
             lat='latitude', 
             lon='longitude', 
             z='risco_z',
             radius=55, 
-            mapbox_style="carto-positron", 
+            map_style="carto-positron", 
             zoom=zoom,
             center=dict(lat=lat_center, lon=lon_center),
             hover_name='municipio',
@@ -235,13 +235,13 @@ with col1:
             lon_center = df_soro_mapa['longitude'].mean() if estado_selec != "Todos" else -51.9253
             zoom = 6 if estado_selec != "Todos" else 3
 
-            fig_soro = px.scatter_mapbox(
+            fig_soro = px.scatter_map(
                 df_soro_mapa,
                 lat='latitude',
                 lon='longitude',
                 hover_name='Unidade de Saúde',
                 hover_data={'Município': True, 'Endereço': True, 'Contato': True, 'latitude': False, 'longitude': False},
-                mapbox_style="carto-positron",
+                map_style="carto-positron",
                 zoom=zoom,
                 center=dict(lat=lat_center, lon=lon_center),
                 custom_data=['Unidade de Saúde']
@@ -249,10 +249,8 @@ with col1:
             fig_soro.update_traces(marker=dict(size=14, color='red'), text='🏥', textposition='top center')
             fig_soro.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, height=550)
             
-            # Captura o clique no ponto do mapa do Plotly
             evento_mapa = st.plotly_chart(fig_soro, use_container_width=True, on_select="rerun", selection_mode="points")
             
-            # Sincroniza a seleção do mapa com a sessão
             if "unidade_clicada" not in st.session_state:
                 st.session_state.unidade_clicada = "Selecione..."
 
@@ -317,7 +315,6 @@ with col2:
             if "unidade_clicada" not in st.session_state:
                 st.session_state.unidade_clicada = "Selecione..."
 
-            # Garante que a unidade clicada esteja na lista
             indice_atual = 0
             if st.session_state.unidade_clicada in lista_unidades:
                 indice_atual = lista_unidades.index(st.session_state.unidade_clicada) + 1
@@ -387,7 +384,7 @@ with col_chat_btn:
                         prompt_completo = f"Contexto atual do painel do usuário: {contexto_filtros}\n\nPergunta do usuário: {prompt}"
 
                         response = client.models.generate_content(
-                            model='gemini-3.1-flash-lite',
+                            model='gemini-2.5-flash',
                             contents=prompt_completo,
                             config={
                                 'system_instruction': system_instruction,

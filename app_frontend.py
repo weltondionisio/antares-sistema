@@ -32,13 +32,13 @@ st.set_page_config(
 # IDENTIDADE VISUAL
 # ============================================================
 CORES = {
-    "navy": "#102B41",
-    "navy_dark": "#0A1D31",
-    "teal": "#11A696",
-    "teal_light": "#E4F6F2",
-    "text": "#182F43",
-    "muted": "#687E91",
-    "grid": "#E8EFF3",
+    "navy": "#585E9E",
+    "navy_dark": "#454B83",
+    "teal": "#6C73B7",
+    "teal_light": "#F0EEFA",
+    "text": "#2D2A49",
+    "muted": "#766F8B",
+    "grid": "#ECE8F4",
     "amber": "#E5A544",
     "red": "#D85E55",
 }
@@ -47,15 +47,15 @@ st.markdown(
     """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
-:root { --navy:#102B41; --teal:#11A696; --ink:#182F43; --muted:#687E91; }
+:root { --navy:#585E9E; --teal:#6C73B7; --ink:#2D2A49; --muted:#766F8B; }
 html, body, [class*="css"], .stApp {
     font-family: 'DM Sans', 'Segoe UI', sans-serif;
 }
 .stApp {
     color: var(--ink);
-    background: #F4F7FA;
+    background: #F8F7FC;
 }
-[data-testid="stAppViewContainer"] { background: #F4F7FA; }
+[data-testid="stAppViewContainer"] { background: #F8F7FC; }
 [data-testid="stHeader"] { background: transparent; }
 [data-testid="stToolbar"] { right: 1rem; }
 .block-container {
@@ -68,58 +68,86 @@ html, body, [class*="css"], .stApp {
 h1,h2,h3,h4 { font-family:'Manrope','Segoe UI',sans-serif; color:var(--ink); letter-spacing:-.035em; }
 p { color:inherit; }
 [data-testid="stSidebar"] {
-    background: linear-gradient(160deg, #112F46 0%, #0B2034 100%);
+    background: linear-gradient(160deg, #585e9e 0%, #4D538B 100%);
     border-right: 1px solid rgba(255,255,255,.09);
 }
 [data-testid="stSidebar"] > div:first-child { padding-top:1.3rem; }
-[data-testid="stSidebar"] * { color: #EAF1F6; }
+[data-testid="stSidebar"] * { color: #F9F7FF; }
 [data-testid="stSidebar"] [data-testid="stWidgetLabel"] p,
-[data-testid="stSidebar"] label { color:#C4D5E1 !important; font-size:.82rem; font-weight:600; }
+[data-testid="stSidebar"] label { color:#F0EEFA !important; font-size:.82rem; font-weight:600; }
 [data-testid="stSidebar"] [data-baseweb="select"] > div {
-    background: #173A52 !important;
-    border: 1px solid #38546A !important;
+    background: #FFFFFF !important;
+    border: 1px solid #D3CFE4 !important;
     border-radius: 10px !important;
     min-height: 44px;
 }
+/* Selects: white background, high-contrast BLACK text, including chosen values. */
+[data-baseweb="select"] > div {
+    background:#FFFFFF !important;
+    color:#000000 !important;
+    border:1px solid #D3CFE4 !important;
+    border-radius:10px !important;
+}
+[data-baseweb="select"] span,
+[data-baseweb="select"] input,
+[data-baseweb="select"] [data-testid="stMarkdownContainer"] p,
 [data-testid="stSidebar"] [data-baseweb="select"] span,
-[data-testid="stSidebar"] [data-baseweb="select"] input { color:#FFFFFF !important; }
-[data-testid="stSidebar"] [data-baseweb="select"] svg { fill:#CDDDE9 !important; }
+[data-testid="stSidebar"] [data-baseweb="select"] input,
+[data-testid="stSidebar"] [data-baseweb="select"] div {
+    color:#000000 !important;
+    -webkit-text-fill-color:#000000 !important;
+}
+[data-baseweb="select"] svg,
+[data-testid="stSidebar"] [data-baseweb="select"] svg {fill:#413B6C !important; color:#413B6C !important;}
+/* Opened dropdown is rendered separately from the sidebar in Streamlit. */
+[data-baseweb="popover"] [role="listbox"],
+[role="listbox"] {background:#FFFFFF !important;color:#000000 !important;}
+[data-baseweb="popover"] [role="option"],
+[data-baseweb="popover"] [role="option"] *,
+[role="listbox"] [role="option"],
+[role="listbox"] [role="option"] * {
+    color:#000000 !important;
+    -webkit-text-fill-color:#000000 !important;
+}
+[role="listbox"] [role="option"][aria-selected="true"] {background:#F0EEFA !important;}
+[role="listbox"] [role="option"]:hover {background:#F4F1FB !important;}
+[data-baseweb="select"] input::placeholder {color:#444444 !important;-webkit-text-fill-color:#444444 !important;}
 [data-testid="stSidebar"] div[role="radiogroup"] label { padding:.3rem 0; }
 [data-testid="stSidebar"] [data-testid="stButton"] button {
-    border:1px solid #557287;
+    border:1px solid #BFC0DF;
     background:transparent;
-    color:#EAF1F6 !important;
+    color:#F9F7FF !important;
     border-radius:10px;
     min-height:42px;
 }
 [data-testid="stSidebar"] [data-testid="stButton"] button:hover {
-    background:#1B4056;
-    border-color:#69ADAA;
+    background:#6C73B7;
+    border-color:#FFFFFF;
 }
 [data-testid="stSidebar"] hr { border-color:rgba(255,255,255,.16); }
 .sidebar-brand { padding: 10px 0 26px; display:flex; gap:12px; align-items:center; }
 .sidebar-icon {
     display:flex; align-items:center; justify-content:center;
     width:44px; height:44px; border-radius:14px;
-    background:rgba(22,190,172,.18); border:1px solid rgba(55,204,186,.25);
-    color:#8DF0DF; font-size:23px;
+    background:rgba(238,232,255,.16); border:1px solid rgba(238,232,255,.28);
+    color:#EFE9FF; font-size:23px;
 }
 .sidebar-wordmark { font-family:'Manrope',sans-serif; font-weight:800; font-size:1.35rem; letter-spacing:.12em; color:white; }
-.sidebar-sub { font-size:.62rem; color:#A5C4D3; letter-spacing:.16em; font-weight:700; }
-.sidebar-kicker { font-size: .66rem; font-weight:800; letter-spacing:.18em; color:#82AAA9; margin:16px 0 9px; }
+.sidebar-sub { font-size:.62rem; color:#ECE9FF; letter-spacing:.16em; font-weight:700; }
+.sidebar-kicker { font-size: .66rem; font-weight:800; letter-spacing:.18em; color:#EEEAFE; margin:16px 0 9px; }
 .sidebar-help {
-    margin-top:1.6rem; padding:16px; border:1px solid #315169;
+    margin-top:1.6rem; padding:16px; border:1px solid #9EA2CB;
     border-radius:14px; background:rgba(255,255,255,.04);
-    font-size:.78rem; line-height:1.55; color:#B9CAD8;
+    font-size:.78rem; line-height:1.55; color:#F4F1FF;
 }
-.sidebar-help b {color:#EDF8F7;}
-.sidebar-footer {font-size:.67rem;color:#8DA7B7;line-height:1.7;margin-top:13px;}
+.sidebar-help b {color:#F4F1FF;}
+.sidebar-footer {font-size:.67rem;color:#ECE9FF;line-height:1.7;margin-top:13px;}
 .hero {
     border-radius:22px;
     background:
-      radial-gradient(ellipse at 88% 14%,rgba(38,179,162,.24) 0, transparent 34%),
-      radial-gradient(ellipse at 70% 100%,rgba(25,117,147,.19) 0, transparent 39%),
-      linear-gradient(112deg,#102B41 0%,#0E3A4B 100%);
+      radial-gradient(ellipse at 88% 14%,rgba(203,193,255,.24) 0, transparent 34%),
+      radial-gradient(ellipse at 70% 100%,rgba(128,116,197,.20) 0, transparent 39%),
+      linear-gradient(112deg,#6c73b7 0%,#585e9e 100%);
     box-shadow: 0 15px 38px rgba(11,37,58,.08);
     padding:30px 36px;
     margin-bottom:22px;
@@ -128,70 +156,73 @@ p { color:inherit; }
 }
 .hero:after {
     content:""; position:absolute; right:22px; bottom:-95px;
-    width:330px; height:330px; border:1px solid rgba(151,240,227,.10);
-    border-radius:50%; box-shadow:0 0 0 55px rgba(151,240,227,.035),0 0 0 110px rgba(151,240,227,.02);
+    width:330px; height:330px; border:1px solid rgba(237,232,255,.15);
+    border-radius:50%; box-shadow:0 0 0 55px rgba(237,232,255,.055),0 0 0 110px rgba(237,232,255,.04);
     pointer-events:none;
 }
-.hero-kicker { color:#8FDECF; letter-spacing:.20em; font-size:.68rem; font-weight:800; margin-bottom:11px; }
+.hero-kicker { color:#F7F1FF; letter-spacing:.20em; font-size:.68rem; font-weight:800; margin-bottom:11px; }
 .hero-title {color:#FFFFFF;font-family:'Manrope',sans-serif;font-size:clamp(1.65rem,2.35vw,2.7rem);font-weight:800;line-height:1.19;letter-spacing:-.048em;margin:0 0 12px;max-width:850px;}
-.hero-description {color:#C5D8E0;font-size:.91rem;line-height:1.65;margin:0;max-width:720px;}
+.hero-description {color:#F3F1FF;font-size:.91rem;line-height:1.65;margin:0;max-width:720px;}
 .hero-meta {margin-top:19px;display:flex;gap:8px;flex-wrap:wrap;}
-.hero-chip {display:inline-block;padding:6px 12px;border:1px solid rgba(173,220,217,.24);border-radius:999px;background:rgba(255,255,255,.06);color:#D1EAE8;font-size:.71rem;font-weight:600;}
+.hero-chip {display:inline-block;padding:6px 12px;border:1px solid rgba(250,247,255,.29);border-radius:999px;background:rgba(255,255,255,.06);color:#F8F6FF;font-size:.71rem;font-weight:600;}
 .topline {display:flex;align-items:center;justify-content:space-between;margin:0 0 15px;gap:15px;}
-.topline-left {font-size:.70rem;letter-spacing:.16em;font-weight:800;color:#738A9A;}
-.topline-right {font-size:.72rem;color:#8498A7;}
-.metric-card {background:#FFFFFF;border:1px solid #E4EDF2;border-radius:16px;padding:18px 19px 16px;min-height:133px;box-shadow:0 3px 10px rgba(14,52,75,.025);}
+.topline-left {font-size:.70rem;letter-spacing:.16em;font-weight:800;color:#827B97;}
+.topline-right {font-size:.72rem;color:#8E88A3;}
+.metric-card {background:#FFFFFF;border:1px solid #E8E3F2;border-radius:16px;padding:18px 19px 16px;min-height:133px;box-shadow:0 3px 10px rgba(14,52,75,.025);}
 .metric-top {display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:13px;}
-.metric-label {font-size:.74rem;font-weight:700;letter-spacing:.015em;color:#698193;}
-.metric-icon {width:31px;height:31px;border-radius:9px;background:#EBF5F6;color:#148A88;display:flex;align-items:center;justify-content:center;font-size:17px;}
-.metric-value {font-family:'Manrope',sans-serif;font-size:clamp(1.2rem,1.8vw,1.95rem);font-weight:800;line-height:1.18;color:#142D41;letter-spacing:-.06em;}
-.metric-note {font-size:.70rem;color:#8DA0AF;margin-top:9px;}
-.section-overline {font-size:.69rem;font-weight:800;letter-spacing:.15em;color:#168B86;margin-bottom:5px;}
-.section-title {font-size:1.27rem;font-family:'Manrope',sans-serif;font-weight:800;color:#182F43;letter-spacing:-.035em;line-height:1.3;margin:0 0 5px;}
-.section-desc {font-size:.78rem;color:#7A8E9D;margin:0 0 17px;line-height:1.5;}
-.card-shell {background:#FFFFFF;border:1px solid #E4EDF2;border-radius:17px;padding:20px 19px 15px;box-shadow:0 4px 13px rgba(13,41,61,.026);}
+.metric-label {font-size:.74rem;font-weight:700;letter-spacing:.015em;color:#746F8D;}
+.metric-icon {width:31px;height:31px;border-radius:9px;background:#F0EDFB;color:#6663A9;display:flex;align-items:center;justify-content:center;font-size:17px;}
+.metric-value {font-family:'Manrope',sans-serif;font-size:clamp(1.2rem,1.8vw,1.95rem);font-weight:800;line-height:1.18;color:#2D2A49;letter-spacing:-.06em;}
+.metric-note {font-size:.70rem;color:#8B86A0;margin-top:9px;}
+.section-overline {font-size:.69rem;font-weight:800;letter-spacing:.15em;color:#6564AC;margin-bottom:5px;}
+.section-title {font-size:1.27rem;font-family:'Manrope',sans-serif;font-weight:800;color:#2D2A49;letter-spacing:-.035em;line-height:1.3;margin:0 0 5px;}
+.section-desc {font-size:.78rem;color:#79728D;margin:0 0 17px;line-height:1.5;}
+.card-shell {background:#FFFFFF;border:1px solid #E8E3F2;border-radius:17px;padding:20px 19px 15px;box-shadow:0 4px 13px rgba(13,41,61,.026);}
 .card-shell [data-testid="stPlotlyChart"] { border-radius: 12px;overflow:hidden; }
 [data-testid="stVerticalBlockBorderWrapper"]:has(.chart-anchor) {
     background:#FFFFFF;
-    border:1px solid #E4EDF2;
+    border:1px solid #E8E3F2;
     border-radius:17px;
     box-shadow:0 4px 13px rgba(13,41,61,.026);
 }
 [data-testid="stVerticalBlockBorderWrapper"]:has(.chart-anchor) > div { padding: 18px 18px 10px; }
 .chart-anchor {display:none;}
-.support-box {padding:13px 15px;border-radius:11px;background:#EDF8F6;border:1px solid #D6EEE9;color:#397C79;font-size:.77rem;line-height:1.55;}
+.support-box {padding:13px 15px;border-radius:11px;background:#F3F0FB;border:1px solid #E5DFF4;color:#615A8B;font-size:.77rem;line-height:1.55;}
 .support-box.warning {background:#FFF7EC;border-color:#FBE5C4;color:#9D722D;}
 .section-gap {height:20px;}
-hr {border-color:#DDE6ED !important;}
+hr {border-color:#E5E0EF !important;}
 [data-testid="stPlotlyChart"] {margin-top:2px;}
-[data-testid="stExpander"] {border:1px solid #DDE7ED;border-radius:14px;background:#FFFFFF;}
-[data-testid="stExpander"] summary {color:#233B4D;font-weight:600;}
+[data-testid="stExpander"] {border:1px solid #E5E0EF;border-radius:14px;background:#FFFFFF;}
+[data-testid="stExpander"] summary {color:#322E53;font-weight:600;}
 [data-testid="stAlert"] {border-radius:12px;}
 [data-testid="stPopover"] button {
     border-radius:12px;
-    background:#11A696;
-    border:1px solid #11A696;
+    background:#6C73B7;
+    border:1px solid #6C73B7;
     min-height:43px;
     color:white;
     font-weight:700;
-    box-shadow:0 5px 15px rgba(17,166,150,.16);
+    box-shadow:0 5px 15px rgba(88,94,158,.22);
 }
-[data-testid="stPopover"] button:hover {background:#0A8D80;border-color:#0A8D80;color:white;}
+[data-testid="stPopover"] button:hover {background:#585E9E;border-color:#585E9E;color:white;}
 [data-testid="stPopover"] button * {color:inherit !important;}
 [data-testid="stPopoverBody"] {border-radius:16px;background:#FFFFFF;}
-[data-testid="stPopoverBody"] * {color:#1B364A;}
+[data-testid="stPopoverBody"] * {color:#2D2A49;}
 [data-testid="stPopoverBody"] [data-testid="stChatMessage"] {border-radius:11px;}
-[data-testid="stPopoverBody"] textarea,[data-testid="stPopoverBody"] input {color:#182F43 !important;}
-[data-testid="stMain"] a { color:#0B8279; }
-[data-testid="stMain"] a:hover {color:#095E58;}
-.footer {padding:18px 2px 1px;border-top:1px solid #DDE6EC;font-size:.74rem;color:#7D91A1;line-height:1.7;}
-.footer strong {color:#2B4C60;}
+[data-testid="stPopoverBody"] textarea,[data-testid="stPopoverBody"] input {color:#2D2A49 !important;}
+[data-testid="stMain"] a { color:#6263AE; }
+[data-testid="stMain"] a:hover {color:#4D4E94;}
+.footer {padding:18px 2px 1px;border-top:1px solid #E5E0EF;font-size:.74rem;color:#807B97;line-height:1.7;}
+.footer strong {color:#413B6C;}
 @media (max-width: 1000px) {
     .block-container {padding-left:1.1rem;padding-right:1.1rem;padding-top:1.2rem;}
     .hero {padding:25px 22px;border-radius:18px;}
     .hero-title {font-size:1.65rem;}
     .metric-card {min-height:121px;}
 }
+
+/* The original ANTARES logo is displayed in the main page header. */
+[data-testid="stMain"] div[data-testid="stImage"] img {object-fit:contain;}
 </style>
 """,
     unsafe_allow_html=True,
@@ -307,9 +338,6 @@ with st.sidebar:
         '<div class="sidebar-sub">EPIDEMIOLOGICAL INTELLIGENCE</div></div></div>',
         unsafe_allow_html=True,
     )
-    if os.path.exists("logo_antares.jpg"):
-        with st.expander("Ver identidade visual original"):
-            st.image("logo_antares.jpg", use_container_width=True)
     st.markdown('<div class="sidebar-kicker">PAINEL DE CONTROLE</div>', unsafe_allow_html=True)
     tipo_mapa = st.radio(
         "Camada de visualização",
@@ -364,6 +392,19 @@ regiao = municipio_selec if municipio_selec != "Todos" else (estado_selec if est
 # ============================================================
 # CABEÇALHO
 # ============================================================
+# Exibe a logo original no topo, como na primeira versão do ANTARES.
+if os.path.exists("logo_antares.jpg"):
+    _, coluna_logo, _ = st.columns([1, 3, 1])
+    with coluna_logo:
+        st.image("logo_antares.jpg", use_container_width=True)
+else:
+    st.markdown(
+        '<div style="text-align:center;padding:12px 0 20px;'
+        'font-weight:800;font-size:1.55rem;letter-spacing:.14em;color:#585e9e">'
+        'ANTARES</div>',
+        unsafe_allow_html=True,
+    )
+
 st.markdown(
     '<div class="topline"><div class="topline-left">VISÃO GERAL / ESCORPIONISMO</div>'
     '<div class="topline-right">Sistema preditivo • Brasil</div></div>',
@@ -451,9 +492,9 @@ with col_mapa:
                     height=465, margin=dict(l=0, r=0, t=0, b=0),
                     paper_bgcolor="rgba(0,0,0,0)",
                     coloraxis_colorbar=dict(
-                        title=dict(text="Intensidade", font=dict(size=11, color="#526B7B")),
+                        title=dict(text="Intensidade", font=dict(size=11, color="#655E81")),
                         thickness=10, len=.56, tickvals=[0, .5, 1],
-                        ticktext=["Baixa", "Média", "Alta"], tickfont=dict(size=10, color="#526B7B"),
+                        ticktext=["Baixa", "Média", "Alta"], tickfont=dict(size=10, color="#655E81"),
                         bgcolor="rgba(255,255,255,.9)", outlinewidth=0,
                     ),
                 )
@@ -526,7 +567,7 @@ with col_lateral:
             fig_bar = go.Figure()
             fig_bar.add_trace(go.Bar(
                 x=ORDEM_MESES, y=serie, name="Acidentes previstos",
-                marker=dict(color="#70BDB1", line=dict(color="#5AAEA4", width=0)),
+                marker=dict(color="#A29AD4", line=dict(color="#9388C5", width=0)),
                 hovertemplate="%{x}<br>%{y:,.0f} acidentes<extra></extra>",
             ))
             fig_bar.add_trace(go.Scatter(

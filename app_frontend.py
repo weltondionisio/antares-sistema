@@ -75,7 +75,15 @@ p { color:inherit; }
     border-right: 1px solid rgba(255,255,255,.09);
 }
 [data-testid="stSidebar"] > div:first-child { padding-top:1.3rem; }
-[data-testid="stSidebar"] * { color: #F9F7FF; }
+/* Preserve white for sidebar labels, without overriding select values. */
+[data-testid="stSidebar"] .sidebar-brand,
+[data-testid="stSidebar"] .sidebar-kicker,
+[data-testid="stSidebar"] .sidebar-help,
+[data-testid="stSidebar"] .sidebar-footer,
+[data-testid="stSidebar"] [data-testid="stRadio"] p,
+[data-testid="stSidebar"] [data-testid="stRadio"] span {
+    color: #F9F7FF;
+}
 [data-testid="stSidebar"] [data-testid="stWidgetLabel"] p,
 [data-testid="stSidebar"] label { color:#F0EEFA !important; font-size:.82rem; font-weight:600; }
 [data-testid="stSidebar"] [data-baseweb="select"] > div {
@@ -283,6 +291,56 @@ body [role="listbox"] [role="option"]:hover,
 body [data-baseweb="menu"] [role="option"]:hover {
     background-color: #F0EEFA !important;
 }
+
+/* FINAL OVERRIDE: black selected values and dropdown options. */
+[data-testid="stSelectbox"] [data-baseweb="select"],
+[data-testid="stSelectbox"] [data-baseweb="select"] > div,
+[data-testid="stSelectbox"] [role="combobox"] {
+    background-color: #FFFFFF !important;
+    color: #000000 !important;
+    -webkit-text-fill-color: #000000 !important;
+    color-scheme: light;
+    opacity: 1 !important;
+}
+
+/* Includes selected text, e.g. Todos, and nested typography. */
+[data-testid="stSelectbox"] [data-baseweb="select"] *:not(svg):not(path),
+[data-testid="stSelectbox"] [data-baseweb="select"] input {
+    color: #000000 !important;
+    -webkit-text-fill-color: #000000 !important;
+    opacity: 1 !important;
+    filter: none !important;
+}
+
+/* Search placeholder and input in selectboxes. */
+[data-testid="stSelectbox"] input::placeholder,
+[data-baseweb="popover"] input::placeholder {
+    color: #000000 !important;
+    -webkit-text-fill-color: #000000 !important;
+    opacity: 1 !important;
+}
+
+/* Dropdown options are rendered in an external BaseWeb portal. */
+body [data-baseweb="popover"] [role="listbox"],
+body [data-baseweb="popover"] [data-baseweb="menu"],
+body [role="listbox"],
+body [data-baseweb="menu"] {
+    background-color: #FFFFFF !important;
+    color-scheme: light;
+}
+body [data-baseweb="popover"] [role="option"],
+body [data-baseweb="popover"] [role="option"] *:not(svg):not(path),
+body [role="listbox"] [role="option"],
+body [role="listbox"] [role="option"] *:not(svg):not(path),
+body [data-baseweb="menu"] [role="option"],
+body [data-baseweb="menu"] [role="option"] *:not(svg):not(path),
+body [data-baseweb="menu"] li,
+body [data-baseweb="menu"] li *:not(svg):not(path) {
+    color: #000000 !important;
+    -webkit-text-fill-color: #000000 !important;
+    opacity: 1 !important;
+}
+
 </style>
 """,
     unsafe_allow_html=True,

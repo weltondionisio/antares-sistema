@@ -5,6 +5,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import urllib.parse
 from google import genai
+from google.genai import errors, types
 
 st.set_page_config(page_title="Sistema Antares", layout="wide")
 
@@ -17,15 +18,15 @@ st.markdown("""
     div[data-testid="stMetricValue"] { color: #FFFFFF !important; }
     div[data-testid="stMetricLabel"] { color: #FFFFFF !important; }
     section[data-testid="stSidebar"] { background-color: #585e9e; }
-    
+
     /* Força o texto dentro do st.info a ficar branco */
-    div[data-baseweb="notification"] p, 
+    div[data-baseweb="notification"] p,
     div[data-baseweb="notification"] span,
     div[data-testid="stInfo"] p,
     div[data-testid="stInfo"] span {
         color: #FFFFFF !important;
     }
-    
+
     /* Força o fundo dos seletores na barra lateral para branco com texto preto */
     section[data-testid="stSidebar"] div[data-baseweb="select"] > div {
         background-color: #FFFFFF !important;
@@ -40,23 +41,23 @@ st.markdown("""
         background-color: #FFFFFF !important;
         border-color: #FFFFFF !important;
     }
-    [data-testid="stPopover"] button p, 
+    [data-testid="stPopover"] button p,
     [data-testid="stPopover"] button span,
     [data-testid="stPopover"] button div {
         color: #000000 !important;
     }
-    
+
     /* Força o conteúdo interno do popover expandido para fundo branco e texto preto */
     [data-testid="stPopoverBody"] {
         background-color: #FFFFFF !important;
     }
-    [data-testid="stPopoverBody"] h1, 
-    [data-testid="stPopoverBody"] h2, 
-    [data-testid="stPopoverBody"] h3, 
-    [data-testid="stPopoverBody"] h4, 
-    [data-testid="stPopoverBody"] p, 
-    [data-testid="stPopoverBody"] span, 
-    [data-testid="stPopoverBody"] div, 
+    [data-testid="stPopoverBody"] h1,
+    [data-testid="stPopoverBody"] h2,
+    [data-testid="stPopoverBody"] h3,
+    [data-testid="stPopoverBody"] h4,
+    [data-testid="stPopoverBody"] p,
+    [data-testid="stPopoverBody"] span,
+    [data-testid="stPopoverBody"] div,
     [data-testid="stPopoverBody"] label {
         color: #000000 !important;
     }
@@ -90,9 +91,9 @@ def carregar_dados():
     df = pd.read_csv("previsoes_municipios.csv")
     mapa_estados = {
         '11': 'Rondônia', '12': 'Acre', '13': 'Amazonas', '14': 'Roraima', '15': 'Pará', '16': 'Amapá', '17': 'Tocantins',
-        '21': 'Maranhão', '22': 'Piauí', '23': 'Ceará', '24': 'Rio Grande do Norte', '25': 'Paraíba', '26': 'Pernambuco', 
-        '27': 'Alagoas', '28': 'Sergipe', '29': 'Bahia', '31': 'Minas Gerais', '32': 'Espírito Santo', '33': 'Rio de Janeiro', 
-        '35': 'São Paulo', '41': 'Paraná', '42': 'Santa Catarina', '43': 'Rio Grande do Sul', '50': 'Mato Grosso do Sul', 
+        '21': 'Maranhão', '22': 'Piauí', '23': 'Ceará', '24': 'Rio Grande do Norte', '25': 'Paraíba', '26': 'Pernambuco',
+        '27': 'Alagoas', '28': 'Sergipe', '29': 'Bahia', '31': 'Minas Gerais', '32': 'Espírito Santo', '33': 'Rio de Janeiro',
+        '35': 'São Paulo', '41': 'Paraná', '42': 'Santa Catarina', '43': 'Rio Grande do Sul', '50': 'Mato Grosso do Sul',
         '51': 'Mato Grosso', '52': 'Goiás', '53': 'Distrito Federal'
     }
     df['estado_raw'] = df['estado'].astype(str).str.strip()
@@ -112,12 +113,12 @@ def carregar_pontos_soro():
             df_soro = pd.read_csv("Pontos Estratégicos de Soro Antiveneno de Escorpiões.csv", sep=",")
         except Exception:
             df_soro = pd.DataFrame(columns=['Estado', 'Município', 'Unidade de Saúde', 'Endereço', 'Contato', 'CNES'])
-    
+
     df_soro.columns = [c.strip() for c in df_soro.columns]
     for col in ['Estado', 'Município', 'Unidade de Saúde', 'Endereço', 'Contato', 'CNES']:
         if col not in df_soro.columns:
             df_soro[col] = 'Indisponível'
-    
+
     def gerar_link_maps(row):
         query = f"{row['Unidade de Saúde']}, {row['Município']} - {row['Estado']}, {row['Endereço']}"
         encoded_query = urllib.parse.quote(query)
@@ -152,9 +153,9 @@ df_base['acidentes_ajustados'] = df_base['acidentes_ajustados'].fillna(mediana_g
 df_base['acidentes_ajustados'] = df_base['acidentes_ajustados'].apply(lambda x: mediana_geral if x <= 0 else x)
 
 df_filtrado = df_base.copy()
-if estado_selec != "Todos": 
+if estado_selec != "Todos":
     df_filtrado = df_filtrado[df_filtrado['estado'] == estado_selec]
-if municipio_selec != "Todos": 
+if municipio_selec != "Todos":
     df_filtrado = df_filtrado[df_filtrado['municipio'] == municipio_selec]
 
 # Filtragem do dataframe de soro
@@ -172,7 +173,7 @@ col1, col2 = st.columns([1.2, 1.3])
 with col1:
     if tipo_mapa == "Mapa de Risco":
         st.subheader("Mapa de Risco")
-        
+
         df_mapa = df_filtrado.groupby(['estado', 'municipio', 'latitude', 'longitude'], observed=False)['acidentes_ajustados'].sum().reset_index()
 
         df_mapa['val_log'] = np.log1p(df_mapa['acidentes_ajustados'])
@@ -183,10 +184,10 @@ with col1:
             df_mapa['risco_z'] = 1.0
         else:
             df_mapa['risco_z'] = 0.2 + 0.8 * ((df_mapa['val_log'] - min_v) / (max_v - min_v))
-        
+
         lat_center = df_mapa['latitude'].mean() if not df_mapa.empty else -14.2350
         lon_center = df_mapa['longitude'].mean() if not df_mapa.empty else -51.9253
-        
+
         if municipio_selec != "Todos":
             zoom = 8
         elif estado_selec != "Todos":
@@ -201,32 +202,32 @@ with col1:
         ]
 
         fig = px.density_map(
-            df_mapa, 
-            lat='latitude', 
-            lon='longitude', 
+            df_mapa,
+            lat='latitude',
+            lon='longitude',
             z='risco_z',
-            radius=55, 
-            map_style="carto-positron", 
+            radius=55,
+            map_style="carto-positron",
             zoom=zoom,
             center=dict(lat=lat_center, lon=lon_center),
             hover_name='municipio',
             hover_data={'estado': True, 'acidentes_ajustados': ':.2f', 'risco_z': False, 'latitude': False, 'longitude': False},
             color_continuous_scale=gradiente_amarelo_laranja_vermelho,
-            range_color=[0, 1], 
-            opacity=0.85 
+            range_color=[0, 1],
+            opacity=0.85
         )
         fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, height=550)
         st.plotly_chart(fig, use_container_width=True)
 
     else:
         st.subheader("Mapa de Centros de Atendimento (Soro Antiveneno)")
-        
+
         df_geo_aux = df_base[['estado', 'municipio', 'latitude', 'longitude']].drop_duplicates(subset=['estado', 'municipio'])
         df_soro_mapa = pd.merge(
-            df_soro_filtrado, 
-            df_geo_aux, 
-            left_on=['Estado', 'Município'], 
-            right_on=['estado', 'municipio'], 
+            df_soro_filtrado,
+            df_geo_aux,
+            left_on=['Estado', 'Município'],
+            right_on=['estado', 'municipio'],
             how='inner'
         )
 
@@ -248,9 +249,9 @@ with col1:
             )
             fig_soro.update_traces(marker=dict(size=14, color='red'), text='🏥', textposition='top center')
             fig_soro.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, height=550)
-            
+
             evento_mapa = st.plotly_chart(fig_soro, use_container_width=True, on_select="rerun", selection_mode="points")
-            
+
             if "unidade_clicada" not in st.session_state:
                 st.session_state.unidade_clicada = "Selecione..."
 
@@ -265,36 +266,36 @@ with col2:
     if tipo_mapa == "Mapa de Risco":
         ordem_meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
         df_sazonal = df_filtrado.groupby('mes', observed=False)['acidentes_ajustados'].sum().reindex(ordem_meses).reset_index()
-        
+
         vals = np.concatenate([df_sazonal['acidentes_ajustados'].values[-2:], df_sazonal['acidentes_ajustados'].values, df_sazonal['acidentes_ajustados'].values[:2]])
         df_sazonal['media_movel'] = pd.Series(vals).rolling(window=4, center=True).mean().values[2:-2]
-        
-        def formatar_br(v): 
+
+        def formatar_br(v):
             return f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-        
+
         st.subheader("Tendência Sazonal (Média Móvel - 4 Meses)")
         st.metric("Total Anual Previsto", formatar_br(df_filtrado['acidentes_ajustados'].sum()))
 
         fig_bar = go.Figure()
         fig_bar.add_trace(go.Bar(
-            x=df_sazonal['mes'], 
-            y=df_sazonal['acidentes_ajustados'], 
-            name='Acidentes', 
-            marker_color='#d9534f', 
+            x=df_sazonal['mes'],
+            y=df_sazonal['acidentes_ajustados'],
+            name='Acidentes',
+            marker_color='#d9534f',
             marker_line=dict(color='black', width=1.5)
         ))
         fig_bar.add_trace(go.Scatter(
-            x=df_sazonal['mes'], 
-            y=df_sazonal['media_movel'], 
-            mode='lines+markers', 
-            name='Média Móvel', 
+            x=df_sazonal['mes'],
+            y=df_sazonal['media_movel'],
+            mode='lines+markers',
+            name='Média Móvel',
             line=dict(color='yellow', width=3)
         ))
-        
+
         fig_bar.update_layout(
-            height=320, 
-            plot_bgcolor='rgba(0,0,0,0)', 
-            paper_bgcolor='rgba(0,0,0,0)', 
+            height=320,
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
             font=dict(color='white'),
             margin=dict(l=10, r=10, t=10, b=10),
             xaxis=dict(
@@ -311,7 +312,7 @@ with col2:
         st.subheader("Selecione a Unidade de Atendimento para mais informações:")
         if not df_soro_filtrado.empty:
             lista_unidades = sorted(df_soro_filtrado['Unidade de Saúde'].unique().tolist())
-            
+
             if "unidade_clicada" not in st.session_state:
                 st.session_state.unidade_clicada = "Selecione..."
 
@@ -320,7 +321,7 @@ with col2:
                 indice_atual = lista_unidades.index(st.session_state.unidade_clicada) + 1
 
             unidade_escolhida = st.selectbox(" ", ["Selecione..."] + lista_unidades, index=indice_atual)
-            
+
             if unidade_escolhida != "Selecione...":
                 st.session_state.unidade_clicada = unidade_escolhida
                 info_unidade = df_soro_filtrado[df_soro_filtrado['Unidade de Saúde'] == unidade_escolhida].iloc[0]
@@ -330,7 +331,7 @@ with col2:
                 - **Endereço:** {info_unidade['Endereço']}
                 - **Contato:** {info_unidade['Contato']}
                 - **CNES:** {info_unidade['CNES']}
-                
+
                 📍 **[Abrir localização no Google Maps]({info_unidade['google_maps_link']})**
                 """, unsafe_allow_html=True)
             else:
@@ -347,7 +348,7 @@ with col_chat_btn:
     with st.popover("💬 Assistente Antares", use_container_width=True):
         st.markdown("#### 🦂 Chatbot ANTARES")
         st.write("Tire dúvidas sobre os dados atuais do painel ou sobre cuidados com o escorpionismo.")
-        
+
         if "messages" not in st.session_state:
             st.session_state.messages = []
 
@@ -370,8 +371,20 @@ with col_chat_btn:
 
                 with st.spinner("Analisando..."):
                     try:
-                        client = genai.Client(api_key=api_key)
-                        
+                        # Retry automático para falhas temporárias da API Gemini.
+                        retry_options = types.HttpRetryOptions(
+                            attempts=3,
+                            initial_delay=1.0,
+                            max_delay=6.0,
+                            exp_base=2.0,
+                            jitter=1.0,
+                            http_status_codes=[408, 429, 500, 502, 503, 504],
+                        )
+                        client = genai.Client(
+                            api_key=api_key,
+                            http_options=types.HttpOptions(retry_options=retry_options),
+                        )
+
                         total_regiao = df_filtrado['acidentes_ajustados'].sum()
                         contexto_filtros = f"Estado selecionado: {estado_selec}, Município selecionado: {municipio_selec}. Total de acidentes previstos anualmente para este recorte: {total_regiao:.2f} mil."
 
@@ -383,19 +396,43 @@ with col_chat_btn:
 
                         prompt_completo = f"Contexto atual do painel do usuário: {contexto_filtros}\n\nPergunta do usuário: {prompt}"
 
-                        response = client.models.generate_content(
-                            model='gemini-3.5-flash',
-                            contents=prompt_completo,
-                            config={
-                                'system_instruction': system_instruction,
-                                'temperature': 0.3,
-                            }
-                        )
-                        
-                        resposta_texto = response.text
+                        # Utiliza o modelo alternativo somente após falhas temporárias do principal.
+                        modelos = ["gemini-3.5-flash", "gemini-3.5-flash-lite"]
+                        resposta_texto = None
+                        ultimo_erro = None
+
+                        for modelo in modelos:
+                            try:
+                                response = client.models.generate_content(
+                                    model=modelo,
+                                    contents=prompt_completo,
+                                    config={
+                                        'system_instruction': system_instruction,
+                                        'temperature': 0.3,
+                                    }
+                                )
+                                resposta_texto = response.text
+                                if not resposta_texto:
+                                    raise ValueError("O Gemini retornou uma resposta vazia.")
+                                break
+                            except errors.APIError as e:
+                                # Não repetir erros permanentes de autenticação ou configuração.
+                                if e.code not in (408, 429, 500, 502, 503, 504):
+                                    raise
+                                ultimo_erro = e
+                            except ValueError as e:
+                                ultimo_erro = e
+
+                        if resposta_texto is None:
+                            raise RuntimeError(
+                                "O serviço Gemini está temporariamente indisponível, "
+                                "mesmo após novas tentativas e uso do modelo alternativo. "
+                                "Tente novamente mais tarde."
+                            ) from ultimo_erro
+
                         st.session_state.messages.append({"role": "assistant", "content": resposta_texto})
                         st.rerun()
-                    
+
                     except Exception as e:
                         st.error(f"Erro na API: {e}")
 

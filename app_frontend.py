@@ -603,18 +603,19 @@ with col_mapa:
             if df_mapa.empty:
                 st.info("Não há coordenadas disponíveis para este recorte.")
             else:
-                # Apenas a camada do mapa: limitar valores extremos e destacar contrastes municipais.
-                p95 = df_mapa["acidentes_ajustados"].quantile(0.95)
-                df_mapa["acidentes_clip"] = df_mapa["acidentes_ajustados"].clip(upper=p95)
-                df_mapa["risco_z"] = df_mapa["acidentes_clip"].rank(pct=True)
+                # Evidencia os maiores valores sem alterar as previsões originais.
+                p98 = df_mapa["acidentes_ajustados"].quantile(0.98)
+                df_mapa["acidentes_clip"] = df_mapa["acidentes_ajustados"].clip(upper=p98)
+                # Potência maior concentra a cor nos municípios com valores mais altos.
+                df_mapa["risco_z"] = df_mapa["acidentes_clip"].rank(pct=True).pow(5)
 
-                # Raio menor evita que a densidade cubra grandes áreas do Brasil.
+                # Raios menores reduzem a união visual entre pontos municipais vizinhos.
                 if municipio_selec != "Todos":
-                    zoom, radius = 8, 18
+                    zoom, radius = 8, 14
                 elif estado_selec != "Todos":
-                    zoom, radius = 6, 22
+                    zoom, radius = 6, 12
                 else:
-                    zoom, radius = 3, 16
+                    zoom, radius = 3, 9
 
                 fig_mapa = px.density_map(
                     df_mapa, lat="latitude", lon="longitude", z="risco_z",
@@ -624,20 +625,22 @@ with col_mapa:
                     hover_data={"estado": True, "acidentes_ajustados": ":.2f", "risco_z": False,
                                 "acidentes_clip": False, "latitude": False, "longitude": False},
                     color_continuous_scale=[
-                        [0.00, "#FFF7BC"],
-                        [0.25, "#FEC44F"],
-                        [0.50, "#FE9929"],
-                        [0.75, "#EC7014"],
-                        [1.00, "#CC4C02"],
+                        [0.00, "rgba(255,255,255,0)"],
+                        [0.14, "rgba(255,246,180,0.32)"],
+                        [0.35, "#FFD54E"],
+                        [0.55, "#FF962E"],
+                        [0.72, "#F14935"],
+                        [0.88, "#E21A27"],
+                        [1.00, "#B5001B"],
                     ],
-                    range_color=[0.15, 1.0], opacity=0.58,
+                    range_color=[0, 0.90], opacity=0.78,
                 )
                 fig_mapa.update_layout(
                     height=465, margin=dict(l=0, r=0, t=0, b=0),
                     paper_bgcolor="rgba(0,0,0,0)",
                     coloraxis_colorbar=dict(
                         title=dict(text="Intensidade", font=dict(size=11, color="#655E81")),
-                        thickness=10, len=.56, tickvals=[0.2, 0.4, 0.6, 0.8, 1.0],
+                        thickness=10, len=.56, tickvals=[0, 0.225, 0.45, 0.675, 0.90],
                         ticktext=["Muito baixa", "Baixa", "Média", "Alta", "Muito alta"],
                         tickfont=dict(size=10, color="#655E81"),
                         bgcolor="rgba(255,255,255,.9)", outlinewidth=0,

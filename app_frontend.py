@@ -7,7 +7,9 @@ Arquivos esperados no mesmo diretório:
 Configuração do Gemini: GEMINI_API_KEY nos Secrets do Streamlit.
 """
 
+import base64
 import html
+import io
 import os
 from pathlib import Path
 import unicodedata
@@ -18,6 +20,8 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
+from PIL import Image
+from scipy.spatial import cKDTree
 from google import genai
 from google.genai import errors, types
 
@@ -583,6 +587,103 @@ with k4:
 st.markdown('<div class="section-gap"></div>', unsafe_allow_html=True)
 
 # ============================================================
+# MAPA: INTERPOLAÇÃO IDW SOBRE GRADE CONTÍNUA
+# ============================================================
+# Limite territorial simplificado: Natural Earth 1:110m, domínio público.
+# Usado apenas para recortar a interpolação ao território brasileiro.
+LIMITE_BRASIL = [[-53.374,-33.768],[-53.651,-33.202],[-53.21,-32.728],[-53.788,-32.047],[-54.572,-31.495],[-55.602,-30.854],[-55.973,-30.883],[-56.976,-30.11],[-57.625,-30.216],[-56.291,-28.853],[-55.162,-27.882],[-54.491,-27.475],[-53.649,-26.923],[-53.628,-26.125],[-54.13,-25.548],[-54.625,-25.739],[-54.429,-25.162],[-54.293,-24.571],[-54.293,-24.021],[-54.653,-23.84],[-55.028,-24.001],[-55.401,-23.957],[-55.518,-23.572],[-55.611,-22.656],[-55.798,-22.357],[-56.473,-22.086],[-56.882,-22.282],[-57.937,-22.09],[-57.871,-20.733],[-58.166,-20.177],[-57.854,-19.97],[-57.95,-19.4],[-57.676,-18.962],[-57.498,-18.174],[-57.735,-17.552],[-58.281,-17.272],[-58.388,-16.877],[-58.241,-16.3],[-60.158,-16.258],[-60.543,-15.094],[-60.251,-15.077],[-60.264,-14.646],[-60.459,-14.354],[-60.503,-13.776],[-61.084,-13.479],[-61.713,-13.489],[-62.127,-13.199],[-62.803,-13.001],[-63.196,-12.627],[-64.316,-12.462],[-65.402,-11.566],[-65.322,-10.896],[-65.445,-10.511],[-65.338,-9.762],[-66.647,-9.931],[-67.174,-10.307],[-68.048,-10.712],[-68.271,-11.015],[-68.786,-11.036],[-69.53,-10.952],[-70.094,-11.124],[-70.549,-11.009],[-70.482,-9.49],[-71.302,-10.079],[-72.185,-10.054],[-72.563,-9.52],[-73.227,-9.462],[-73.015,-9.033],[-73.571,-8.424],[-73.987,-7.524],[-73.723,-7.341],[-73.724,-6.919],[-73.12,-6.63],[-73.22,-6.089],[-72.965,-5.741],[-72.892,-5.275],[-71.748,-4.594],[-70.929,-4.402],[-70.795,-4.251],[-69.894,-4.298],[-69.444,-1.556],[-69.42,-1.123],[-69.577,-0.55],[-70.021,-0.185],[-70.016,0.541],[-69.452,0.706],[-69.252,0.603],[-69.219,0.986],[-69.805,1.089],[-69.817,1.715],[-67.869,1.692],[-67.538,2.037],[-67.26,1.72],[-67.065,1.13],[-66.876,1.253],[-66.326,0.724],[-65.548,0.789],[-65.355,1.095],[-64.611,1.329],[-64.199,1.493],[-64.083,1.916],[-63.369,2.201],[-63.423,2.411],[-64.27,2.497],[-64.409,3.127],[-64.368,3.797],[-64.816,4.056],[-64.629,4.148],[-63.888,4.021],[-63.093,3.771],[-62.805,4.007],[-62.085,4.162],[-60.967,4.536],[-60.601,4.918],[-60.734,5.2],[-60.214,5.244],[-59.981,5.014],[-60.111,4.575],[-59.767,4.424],[-59.538,3.959],[-59.815,3.606],[-59.975,2.755],[-59.719,2.25],[-59.646,1.787],[-59.031,1.318],[-58.54,1.268],[-58.429,1.464],[-58.113,1.507],[-57.661,1.683],[-57.336,1.949],[-56.783,1.864],[-56.539,1.9],[-55.996,1.818],[-55.906,2.022],[-56.073,2.221],[-55.973,2.51],[-55.57,2.422],[-55.098,2.524],[-54.525,2.312],[-54.088,2.106],[-53.779,2.377],[-53.555,2.335],[-53.418,2.053],[-52.94,2.125],[-52.556,2.505],[-52.249,3.241],[-51.658,4.156],[-51.317,4.203],[-51.07,3.65],[-50.509,1.902],[-49.974,1.736],[-49.947,1.046],[-50.699,0.223],[-50.388,-0.078],[-48.621,-0.235],[-48.584,-1.238],[-47.825,-0.582],[-46.567,-0.941],[-44.906,-1.552],[-44.418,-2.138],[-44.582,-2.691],[-43.419,-2.383],[-41.473,-2.912],[-39.979,-2.873],[-38.5,-3.701],[-37.223,-4.821],[-36.453,-5.109],[-35.598,-5.15],[-35.235,-5.465],[-34.896,-6.738],[-34.73,-7.343],[-35.128,-8.996],[-35.637,-9.649],[-37.047,-11.041],[-37.684,-12.171],[-38.424,-13.038],[-38.674,-13.058],[-38.953,-13.793],[-38.882,-15.667],[-39.161,-17.208],[-39.267,-17.868],[-39.584,-18.262],[-39.761,-19.599],[-40.775,-20.905],[-40.945,-21.937],[-41.754,-22.371],[-41.988,-22.97],[-43.075,-22.968],[-44.648,-23.352],[-45.352,-23.797],[-46.472,-24.089],[-47.649,-24.885],[-48.495,-25.877],[-48.641,-26.624],[-48.475,-27.176],[-48.662,-28.186],[-48.888,-28.674],[-49.587,-29.224],[-50.697,-30.984],[-51.576,-31.778],[-52.256,-32.245],[-52.712,-33.197],[-53.374,-33.768]]
+
+ESCALA_INTENSIDADE = [
+    (0.00, "#F9E27D"),
+    (0.20, "#FFD15D"),
+    (0.40, "#FFAC40"),
+    (0.60, "#FF7835"),
+    (0.78, "#F34432"),
+    (0.90, "#D91F2A"),
+    (1.00, "#AC0824"),
+]
+
+
+def mascara_brasil(longitudes, latitudes):
+    """Testa pontos dentro do contorno brasileiro (ray casting vetorizado)."""
+    xx = np.asarray(longitudes, dtype=float).ravel()
+    yy = np.asarray(latitudes, dtype=float).ravel()
+    mask = np.zeros(xx.shape, dtype=bool)
+    polygon = np.asarray(LIMITE_BRASIL, dtype=float)
+    for (x1, y1), (x2, y2) in zip(polygon[:-1], polygon[1:]):
+        if y1 == y2:
+            continue
+        atravessa = (y1 > yy) != (y2 > yy)
+        corte = x1 + (yy - y1) * (x2 - x1) / (y2 - y1)
+        mask ^= atravessa & (xx < corte)
+    return mask.reshape(np.shape(longitudes))
+
+
+def para_xyz(latitudes, longitudes):
+    """Converte latitude/longitude em coordenadas sobre uma esfera unitária."""
+    latitude = np.radians(np.asarray(latitudes, dtype=float))
+    longitude = np.radians(np.asarray(longitudes, dtype=float))
+    return np.column_stack((
+        np.cos(latitude) * np.cos(longitude),
+        np.cos(latitude) * np.sin(longitude),
+        np.sin(latitude),
+    ))
+
+
+def interpolar_idw(lats_amostras, lons_amostras, ranks, lats_grid, lons_grid):
+    """IDW em distâncias esféricas com os 8 vizinhos mais próximos."""
+    pontos = para_xyz(lats_amostras, lons_amostras)
+    consultas = para_xyz(lats_grid, lons_grid)
+    k = min(8, len(pontos))
+    distancias, indices = cKDTree(pontos).query(consultas, k=k)
+    distancias = np.asarray(distancias).reshape(-1, k)
+    indices = np.asarray(indices).reshape(-1, k)
+    pesos = 1.0 / np.maximum(distancias, 1e-9) ** 3.2
+    pesos /= pesos.sum(axis=1, keepdims=True)
+    return np.sum(pesos * np.asarray(ranks)[indices], axis=1)
+
+
+def rgb_da_intensidade(valores):
+    """Transforma percentis interpolados em escala amarela até vermelho-escuro."""
+    pontos = np.array([x for x, _ in ESCALA_INTENSIDADE], dtype=float)
+    cores = np.array([
+        [int(c[i:i + 2], 16) for i in (1, 3, 5)]
+        for _, c in ESCALA_INTENSIDADE
+    ], dtype=float)
+    valores = np.clip(np.asarray(valores, dtype=float), 0, 1)
+    return np.column_stack([np.interp(valores, pontos, cores[:, i]) for i in range(3)]).astype(np.uint8)
+
+
+@st.cache_data(show_spinner=False, max_entries=8)
+def criar_camada_idw(amostras, oeste, leste, sul, norte, largura=650):
+    """Gera PNG transparente, colorido em TODAS as células terrestres do recorte."""
+    # Grade uniforme em Mercator para alinhamento com o mapa de base.
+    altura = max(220, int(largura * (norte - sul) / max(leste - oeste, .01)))
+    altura = min(750, altura)
+    coluna_lon = np.linspace(oeste, leste, largura)
+    mercator = lambda lat: np.log(np.tan(np.pi / 4 + np.radians(lat) / 2))
+    linhas_y = np.linspace(mercator(norte), mercator(sul), altura)
+    linha_lat = np.degrees(2 * np.arctan(np.exp(linhas_y)) - np.pi / 2)
+    lon_grid, lat_grid = np.meshgrid(coluna_lon, linha_lat)
+    dentro = mascara_brasil(lon_grid, lat_grid)
+
+    rgba = np.zeros((altura, largura, 4), dtype=np.uint8)
+    if dentro.any():
+        pontos = np.asarray(amostras, dtype=float)
+        interpolados = interpolar_idw(
+            pontos[:, 0], pontos[:, 1], pontos[:, 2],
+            lat_grid[dentro], lon_grid[dentro],
+        )
+        rgba[dentro, :3] = rgb_da_intensidade(interpolados)
+        rgba[dentro, 3] = 225  # O menor valor também fica visivelmente colorido.
+
+    buffer = io.BytesIO()
+    Image.fromarray(rgba).save(buffer, format="PNG", optimize=True)
+    encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
+    return "data:image/png;base64," + encoded
+
+
+# ============================================================
 # VISUALIZAÇÃO PRINCIPAL
 # ============================================================
 col_mapa, col_lateral = st.columns([1.37, 1], gap="medium")
@@ -593,7 +694,7 @@ with col_mapa:
         if tipo_mapa == "Mapa de Risco":
             st.markdown('<div class="section-overline">DISTRIBUIÇÃO GEOGRÁFICA</div>', unsafe_allow_html=True)
             st.markdown('<div class="section-title">Mapa de intensidade prevista</div>', unsafe_allow_html=True)
-            st.markdown('<div class="section-desc">Concentração espacial relativa das projeções no recorte selecionado</div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-desc">Superfície IDW da intensidade relativa das previsões municipais, sem espaços artificiais de baixa densidade</div>', unsafe_allow_html=True)
 
             df_mapa = (
                 df_filtrado.dropna(subset=["latitude", "longitude"])
@@ -603,53 +704,99 @@ with col_mapa:
             if df_mapa.empty:
                 st.info("Não há coordenadas disponíveis para este recorte.")
             else:
-                # Evidencia os maiores valores sem alterar as previsões originais.
-                p98 = df_mapa["acidentes_ajustados"].quantile(0.98)
-                df_mapa["acidentes_clip"] = df_mapa["acidentes_ajustados"].clip(upper=p98)
-                # Potência maior concentra a cor nos municípios com valores mais altos.
-                df_mapa["risco_z"] = df_mapa["acidentes_clip"].rank(pct=True).pow(5)
+                # Percentis dos municípios preservam os contrastes de intensidade.
+                df_mapa["intensidade"] = df_mapa["acidentes_ajustados"].rank(pct=True)
+                df_mapa["total_previsto"] = df_mapa["acidentes_ajustados"] * 1000
 
-                # Raios menores reduzem a união visual entre pontos municipais vizinhos.
                 if municipio_selec != "Todos":
-                    zoom, radius = 8, 14
+                    zoom, margem = 8, 0.85
                 elif estado_selec != "Todos":
-                    zoom, radius = 6, 12
+                    zoom, margem = 6, 1.4
                 else:
-                    zoom, radius = 3, 9
+                    zoom, margem = 3, 0.65
 
-                fig_mapa = px.density_map(
-                    df_mapa, lat="latitude", lon="longitude", z="risco_z",
-                    radius=radius, map_style="carto-positron", zoom=zoom,
-                    center={"lat": float(df_mapa["latitude"].mean()), "lon": float(df_mapa["longitude"].mean())},
-                    hover_name="municipio",
-                    hover_data={"estado": True, "acidentes_ajustados": ":.2f", "risco_z": False,
-                                "acidentes_clip": False, "latitude": False, "longitude": False},
-                    color_continuous_scale=[
-                        [0.00, "rgba(255,255,255,0)"],
-                        [0.14, "rgba(255,246,180,0.32)"],
-                        [0.35, "#FFD54E"],
-                        [0.55, "#FF962E"],
-                        [0.72, "#F14935"],
-                        [0.88, "#E21A27"],
-                        [1.00, "#B5001B"],
-                    ],
-                    range_color=[0, 0.90], opacity=0.78,
-                )
+                if estado_selec == "Todos" and municipio_selec == "Todos":
+                    oeste, leste, sul, norte = -74.65, -34.0, -34.4, 5.9
+                else:
+                    oeste = max(-74.65, float(df_mapa["longitude"].min()) - margem)
+                    leste = min(-34.0, float(df_mapa["longitude"].max()) + margem)
+                    sul = max(-34.4, float(df_mapa["latitude"].min()) - margem)
+                    norte = min(5.9, float(df_mapa["latitude"].max()) + margem)
+
+                centro = {
+                    "lat": float(df_mapa["latitude"].mean()),
+                    "lon": float(df_mapa["longitude"].mean()),
+                }
+                if len(df_mapa) >= 3:
+                    pontos_idw = tuple(
+                        map(tuple, df_mapa[["latitude", "longitude", "intensidade"]].to_numpy())
+                    )
+                    camada = criar_camada_idw(pontos_idw, oeste, leste, sul, norte)
+                    fig_mapa = go.Figure()
+                    # A camada é um raster georreferenciado, não um mapa de densidade.
+                    fig_mapa.update_layout(map={
+                        "style": "carto-positron",
+                        "center": centro,
+                        "zoom": zoom,
+                        "layers": [{
+                            "sourcetype": "image", "type": "raster", "source": camada,
+                            "coordinates": [
+                                [oeste, norte], [leste, norte],
+                                [leste, sul], [oeste, sul],
+                            ],
+                            "below": "traces", "opacity": 0.96,
+                        }],
+                    })
+                    # Marcadores praticamente transparentes mantêm o hover municipal.
+                    fig_mapa.add_trace(go.Scattermap(
+                        lat=df_mapa["latitude"], lon=df_mapa["longitude"],
+                        mode="markers", name="Municípios",
+                        customdata=list(zip(
+                            df_mapa["municipio"], df_mapa["estado"],
+                            df_mapa["total_previsto"].astype(float),
+                        )),
+                        hovertemplate=(
+                            "<b>%{customdata[0]}</b> — %{customdata[1]}"
+                            "<br>Acidentes previstos: %{customdata[2]:,.0f}<extra></extra>"
+                        ),
+                        marker={
+                            "size": 9, "opacity": 0.015,
+                            "color": df_mapa["intensidade"],
+                            "colorscale": ESCALA_INTENSIDADE,
+                            "cmin": 0, "cmax": 1, "showscale": True,
+                            "colorbar": {
+                                "title": {"text": "Intensidade", "font": {"size": 11, "color": "#655E81"}},
+                                "thickness": 11, "len": .60,
+                                "tickvals": [0, .25, .5, .75, 1],
+                                "ticktext": ["Muito baixa", "Baixa", "Média", "Alta", "Muito alta"],
+                                "tickfont": {"size": 10, "color": "#655E81"},
+                                "outlinewidth": 0,
+                            },
+                        },
+                    ))
+                else:
+                    # Menos de 3 pontos não fornecem suporte para interpolação espacial.
+                    fig_mapa = px.scatter_map(
+                        df_mapa, lat="latitude", lon="longitude", zoom=zoom,
+                        center=centro, map_style="carto-positron", hover_name="municipio",
+                        hover_data={"estado": True, "total_previsto": ":.0f",
+                                    "latitude": False, "longitude": False},
+                    )
+                    fig_mapa.update_traces(marker={"size": 19, "color": "#B5001B"})
+                    st.caption("Recorte com poucos municípios: exibidos pontos, sem extrapolação IDW.")
+
                 fig_mapa.update_layout(
-                    height=465, margin=dict(l=0, r=0, t=0, b=0),
-                    paper_bgcolor="rgba(0,0,0,0)",
-                    coloraxis_colorbar=dict(
-                        title=dict(text="Intensidade", font=dict(size=11, color="#655E81")),
-                        thickness=10, len=.56, tickvals=[0, 0.225, 0.45, 0.675, 0.90],
-                        ticktext=["Muito baixa", "Baixa", "Média", "Alta", "Muito alta"],
-                        tickfont=dict(size=10, color="#655E81"),
-                        bgcolor="rgba(255,255,255,.9)", outlinewidth=0,
-                    ),
+                    height=465, margin={"l": 0, "r": 0, "t": 0, "b": 0},
+                    paper_bgcolor="rgba(0,0,0,0)", showlegend=False,
                 )
-                st.plotly_chart(fig_mapa, use_container_width=True, config={"displaylogo": False, "scrollZoom": False})
+                st.plotly_chart(
+                    fig_mapa, use_container_width=True,
+                    config={"displaylogo": False, "scrollZoom": False},
+                )
             st.markdown(
-                '<div class="support-box">A escala expressa <b>intensidade relativa das previsões</b> dentro '
-                'do filtro selecionado; não representa probabilidade individual de acidente.</div>',
+                '<div class="support-box">A cor representa <b>intensidade relativa interpolada (IDW)</b>, calculada a partir dos valores municipais. '
+                'A superfície cobre o território brasileiro no recorte, mas as cores entre os centroides são estimativas '
+                'espaciais, não previsões observadas para cada ponto; não indicam probabilidade individual de acidente.</div>',
                 unsafe_allow_html=True,
             )
         else:

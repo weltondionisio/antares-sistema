@@ -7,10 +7,10 @@ Disponível em: https://antares-sistema.streamlit.app/
 
 <img width="4406" height="890" alt="logo_antares" src="https://github.com/user-attachments/assets/518a8a18-b7a5-49a5-bedd-9067d9c647e6" />
 
-<h2>🌍 International Scientific Presentation — ICA 2026</h2>
+<h2>🌍 Apresentação científica em Congresso Internacional — ICA 2026</h2>
 
 <p>
-<strong>Resumo aceito para apresentação oral em congresso internacional</strong> at the
+<strong>Resumo aceito para apresentação oral em congresso internacional</strong>:
 23rd International Congress of Arachnology (ICA 2026),
 Kochi, India, 15–21 November 2026.
 </p>

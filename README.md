@@ -6,3 +6,22 @@ Financiamento: São Paulo Research Foundation (FAPESP), Brazil, process number #
 Disponível em: https://antares-sistema.streamlit.app/
 
 <img width="4406" height="890" alt="logo_antares" src="https://github.com/user-attachments/assets/518a8a18-b7a5-49a5-bedd-9067d9c647e6" />
+
+<h2>🌍 International Scientific Presentation — ICA 2026</h2>
+
+<p>
+<strong>Resumo aceito para apresentação oral em congresso internacional</strong> at the
+23rd International Congress of Arachnology (ICA 2026),
+Kochi, India, 15–21 November 2026.
+</p>
+
+<p>
+<strong>Title:</strong>
+<em>Risk Assessment of Scorpionism through Deep Neuroevolutionary Networks</em>
+</p>
+
+<p align="center">
+  <img src="./ica2026_carta_aceite_oral.jpg"
+       alt="Official Abstract Acceptance Letter — ICA 2026"
+       width="650">
+</p>
